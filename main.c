@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <stdio.h>
+#include <dwmapi.h>
 
 #include "libs/guibase.h"
 // #include <wchar.h>
@@ -15,32 +16,7 @@ int running = 1;
 int client_width = 640;
 int client_height = 640;
 
-void *memory;
-BITMAPINFO bitmap_info;
-
-render_buffer rb;
-
-float target_seconds_per_frame = 1.0f / 30.0f;
-
-LARGE_INTEGER frequency;
-
-float get_seconds_per_frame(LARGE_INTEGER start_counter,
-                            LARGE_INTEGER end_counter)
-{
-    return ((float)(end_counter.QuadPart - start_counter.QuadPart) / (float)frequency.QuadPart);
-}
-
-void clear_screen(u32 color)
-{
-    u32 *pixel = (u32 *) memory;
-
-    for (int pixel_number = 0;
-         pixel_number < client_width * client_height;
-         ++pixel_number)
-    {
-        *pixel++ = color;
-    }
-}
+HDC hdc;
 
 void winrectupdate(HWND window)
 {
@@ -49,29 +25,39 @@ void winrectupdate(HWND window)
     GetClientRect(window, &rect);
     client_width = rect.right - rect.left;
     client_height = rect.bottom - rect.top;
+}
 
-    rb.width = client_width;
-    rb.height = client_height;
+void paint(HWND window)
+{
+    PAINTSTRUCT ps;
+    HDC hdc = BeginPaint(window, &ps);
 
-    if (memory) {
-        VirtualFree(memory, 0, MEM_RELEASE);
+    RECT prect = {0, 0, 100, 100};
+
+    const COLORREF rgbWhite   =  0x00FFFFFF;
+
+    FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(rgbWhite)));
+
+    const COLORREF rgbRed   =  0x000000FF;
+    FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(rgbRed)));
+
+    HFONT hFont, hOldFont; 
+
+    // Retrieve a handle to the variable stock font.  
+    hFont = (HFONT)GetStockObject(ANSI_VAR_FONT); 
+
+    // Select the variable stock font into the specified device context. 
+    if (hOldFont = (HFONT)SelectObject(hdc, hFont)) 
+    {
+        // Display the text string.  
+        TextOut(hdc, 120, 120, "Sample ANSI_VAR_FONT text", 25); 
+
+        // Restore the original font.        
+        SelectObject(hdc, hOldFont); 
     }
+    
 
-    memory = VirtualAlloc(0,
-                          client_width * client_height * 4,
-                          MEM_RESERVE | MEM_COMMIT,
-                          PAGE_READWRITE);
-
-    rb.memory = memory;
-
-    bitmap_info.bmiHeader.biSize = sizeof(bitmap_info.bmiHeader);
-    bitmap_info.bmiHeader.biWidth = client_width;
-    bitmap_info.bmiHeader.biHeight = client_height;
-    bitmap_info.bmiHeader.biPlanes = 1;
-    bitmap_info.bmiHeader.biBitCount = 32;
-    bitmap_info.bmiHeader.biCompression = BI_RGB;
-    bitmap_info.bmiHeader.biWidth = client_width;
-    bitmap_info.bmiHeader.biHeight = client_height;
+    EndPaint(window, &ps);
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -87,13 +73,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         break;
 
     case WM_KEYDOWN:
-        // switch (w_param)
-        // {
-
-        // }
+        
         break;
     case WM_PAINT:
-        printf("%d", RDW_INVALIDATE | RDW_ERASE | RDW_UPDATENOW);
+        paint(window);
+        break;
+
     default:
         result = DefWindowProc(window,
                                message,
@@ -127,10 +112,6 @@ int APIENTRY WinMain(HINSTANCE instance,
     }
 
     RECT window_rect = {0, 0, client_width, client_height};
-    // window_rect.left = 0;
-    // window_rect.top = 0;
-    // window_rect.right = client_width;
-    // window_rect.bottom = client_height;
 
     AdjustWindowRectEx(&window_rect,
                        WS_OVERLAPPEDWINDOW,
@@ -147,40 +128,56 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     RegisterClass(&window_class);
 
+    HMONITOR hmon = MonitorFromWindow(NULL,
+                                    MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi = { sizeof(mi) };
+    GetMonitorInfo(hmon, &mi);
+
+
     window = CreateWindowEx(0,
                             window_class.lpszClassName,
                             "Game",
                             WS_OVERLAPPEDWINDOW | WS_VISIBLE,
-                            window_x,
-                            window_y,
-                            window_width,
-                            window_height,
+                            mi.rcMonitor.left,
+                            mi.rcMonitor.top,
+                            mi.rcMonitor.right - mi.rcMonitor.left,
+                            mi.rcMonitor.bottom - mi.rcMonitor.top,
                             0,
                             0,
                             instance,
                             0);
 
-    HDC hdc = GetDC(window);
+    
+    
 
-    // LARGE_INTEGER start_counter, end_counter, counts, fps, ms;
+    hdc = GetDC(window);
 
-    // QueryPerformanceCounter(&start_counter);
-    // QueryPerformanceFrequency(&frequency);
+    // Transparent
+    SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED);
+    SetLayeredWindowAttributes(window, RGB(255,255,255), 0, LWA_COLORKEY);
 
-    // GUI_BASE testgui;
-    // v2 testv2 = {0.0f, 0.0f};
-    // testgui.anchorpoint.x = 0;
-    // testgui.anchorpoint.y = 0;
-    // testgui.size.x = 200;
-    // testgui.size.y = 100;
-    // testgui.position.x = 0;
-    // testgui.position.y = 0;
+    // Removing Border
+    LONG lExStyle = GetWindowLong(window, GWL_EXSTYLE);
+    lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+    SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
 
-    // string test = {7, 2, 6, 0, 1, 3, 5, 6};
-    // testgui.textsize = 8;
-    // testgui.text = &test;
+    // Keeping window on top
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
+        | SWP_NOSIZE 
+        | WS_POPUPWINDOW
+        );
 
-    // rendergui(rb, testgui);
+    SetWindowPos(window, NULL, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+    // MARGINS margins = {-1};
+    // HRESULT hr = S_OK;
+    // hr = DwmExtendFrameIntoClientArea(window,&margins);
+
+    // SetWindowLong(window, GWL_STYLE, GetWindowLong(window, GWL_STYLE) & ~(WS_CAPTION | WS_THICKFRAME));
+  	// SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) & ~(WS_EX_DLGMODALFRAME |
+  	//                   WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
+
+    // ShowWindow(window,SW_HIDE);
 
     while (running)
     {
@@ -190,51 +187,6 @@ int APIENTRY WinMain(HINSTANCE instance,
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
-
-        //Frame cap
-        // QueryPerformanceCounter(&end_counter);
-
-        // float seconds_per_frame = get_seconds_per_frame(start_counter,
-        //                                                 end_counter);
-
-        // if (seconds_per_frame < target_seconds_per_frame)
-        // {
-        //     Sleep((DWORD)(1000 * (target_seconds_per_frame - seconds_per_frame)));
-
-        //     while (seconds_per_frame < target_seconds_per_frame)
-        //     {
-        //         QueryPerformanceCounter(&end_counter);
-
-        //         seconds_per_frame = get_seconds_per_frame(start_counter,
-        //                                                   end_counter);
-        //     }
-        // }
-
-        // QueryPerformanceCounter(&end_counter);
-
-        // seconds_per_frame = get_seconds_per_frame(start_counter,
-        //                                           end_counter);
-        // start_counter = end_counter;
-
-        // //Render
-        // clear_screen(0x111111);
-
-        // rendergui(rb, testgui);
-
-        // //DrawBuffer
-        // StretchDIBits(hdc,
-        //               0,
-        //               0,
-        //               client_width,
-        //               client_height,
-        //               0,
-        //               0,
-        //               client_width,
-        //               client_height,
-        //               memory,
-        //               &bitmap_info,
-        //               DIB_RGB_COLORS,
-        //               SRCCOPY);
     }
 
     return 0;
