@@ -140,21 +140,17 @@ int APIENTRY WinMain(HINSTANCE instance,
     lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
     SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
 
+    // Keeping window on top
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
+        | SWP_NOSIZE 
+        | WS_POPUPWINDOW
+        );
+
 
     SetWindowPos(window, NULL, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-
-    // MARGINS margins = {-1};
-    // HRESULT hr = S_OK;
-    // hr = DwmExtendFrameIntoClientArea(window,&margins);
-
-    // SetWindowLong(window, GWL_STYLE, GetWindowLong(window, GWL_STYLE) & ~(WS_CAPTION | WS_THICKFRAME));
-  	// SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) & ~(WS_EX_DLGMODALFRAME |
-  	//                   WS_EX_WINDOWEDGE | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE));
-
-    // ShowWindow(window,SW_HIDE);
 
     while (running)
     {
@@ -165,14 +161,7 @@ int APIENTRY WinMain(HINSTANCE instance,
             DispatchMessage(&message);
         }
 
-        // Keeping window on top
-    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
-        | SWP_NOSIZE 
-        | WS_POPUPWINDOW
-        );
-
         BringWindowToTop(window);
-        // SetForegroundWindow(window);
     }
 
     return 0;
