@@ -18,15 +18,6 @@ int client_height = 640;
 
 HDC hdc;
 
-void winrectupdate(HWND window)
-{
-
-    RECT rect;
-    GetClientRect(window, &rect);
-    client_width = rect.right - rect.left;
-    client_height = rect.bottom - rect.top;
-}
-
 void paint(HWND window)
 {
     PAINTSTRUCT ps;
@@ -46,16 +37,7 @@ void paint(HWND window)
     // Retrieve a handle to the variable stock font.  
     hFont = (HFONT)GetStockObject(ANSI_VAR_FONT); 
 
-    // Select the variable stock font into the specified device context. 
-    if (hOldFont = (HFONT)SelectObject(hdc, hFont)) 
-    {
-        // Display the text string.  
-        TextOut(hdc, 120, 120, "Sample ANSI_VAR_FONT text", 25); 
-
-        // Restore the original font.        
-        SelectObject(hdc, hOldFont); 
-    }
-    
+    TextOut(hdc, 120, 120, "Sample ANSI_VAR_FONT text", 25); 
 
     EndPaint(window, &ps);
 }
@@ -65,9 +47,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     LRESULT result;
     switch (message)
     {
-    case WM_SIZE:
-        winrectupdate(window);
-        break;
     case WM_CLOSE:
         running = 0;
         break;
@@ -137,7 +116,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     window = CreateWindowEx(0,
                             window_class.lpszClassName,
                             "Game",
-                            WS_OVERLAPPEDWINDOW | WS_VISIBLE,
+                            WS_OVERLAPPED  | WS_VISIBLE | WS_POPUP | WS_DISABLED & ~(WS_EX_APPWINDOW),
                             mi.rcMonitor.left,
                             mi.rcMonitor.top,
                             mi.rcMonitor.right - mi.rcMonitor.left,
@@ -161,13 +140,11 @@ int APIENTRY WinMain(HINSTANCE instance,
     lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
     SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
 
-    // Keeping window on top
-    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
-        | SWP_NOSIZE 
-        | WS_POPUPWINDOW
-        );
 
     SetWindowPos(window, NULL, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+
+    LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
+    SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
 
     // MARGINS margins = {-1};
     // HRESULT hr = S_OK;
@@ -187,6 +164,15 @@ int APIENTRY WinMain(HINSTANCE instance,
             TranslateMessage(&message);
             DispatchMessage(&message);
         }
+
+        // Keeping window on top
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
+        | SWP_NOSIZE 
+        | WS_POPUPWINDOW
+        );
+
+        BringWindowToTop(window);
+        // SetForegroundWindow(window);
     }
 
     return 0;
