@@ -129,6 +129,8 @@ int APIENTRY WinMain(HINSTANCE instance,
     char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
     char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
+    printf("%d", atoi("ff"));
+    printf("bruh");
 
     FILE *fptr;
 
@@ -151,12 +153,12 @@ int APIENTRY WinMain(HINSTANCE instance,
 
             fptr = fopen(filename, "r");
 
-            char i[1];
+            char i[2];
             char* ip = i;
 
-            fgets(ip, 1, fptr);
+            fgets(ip, 0, fptr);
 
-            printf(ip);
+            // printf(ip);
         }
     }
 
