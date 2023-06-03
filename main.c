@@ -151,10 +151,10 @@ int APIENTRY WinMain(HINSTANCE instance,
 
             fptr = fopen(filename, "r");
 
-            char i[4];
+            char i[1];
             char* ip = i;
 
-            fgets(ip, 4, fptr);
+            fgets(ip, 1, fptr);
 
             printf(ip);
         }
