@@ -126,9 +126,40 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     void* images = malloc(sizeof(byte) * 8 * 6 * 6 * 32 * 32);
 
-    // char animations[][] = {"dadwa"};
+    char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
+    char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
+
 
     FILE *fptr;
+
+    for (int anim = 0; anim < 6; anim++)
+    {
+        for (int dir = 0; dir < 8; dir++)
+        {
+            char filename[] = "./CatAnims/FF-FF.32x32frames";
+
+            // Anim Name
+            filename[11] = animations[anim][0];
+            filename[12] = animations[anim][1];
+
+
+            // Direction name
+            filename[14] = directions[dir][0];
+            filename[15] = directions[dir][1];
+
+            // atoi();
+
+            fptr = fopen(filename, "r");
+
+            char i[4];
+            char* ip = i;
+
+            fgets(ip, 4, fptr);
+
+            printf(ip);
+        }
+    }
+
     // fptr = fopen("filename.txt", "r");
 
     while (running)
