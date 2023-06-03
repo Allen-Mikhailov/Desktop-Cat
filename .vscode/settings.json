@@ -3,6 +3,8 @@
         "xutility": "c",
         "tuple": "cpp",
         "utility": "cpp",
-        "windows.h": "c"
-    }
+        "windows.h": "c",
+        "gdiplusinit.h": "c"
+    },
+    "C_Cpp.errorSquiggles": "enabled"
 }
