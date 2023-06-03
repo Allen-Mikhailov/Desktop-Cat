@@ -124,6 +124,12 @@ int APIENTRY WinMain(HINSTANCE instance,
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
 
+    void* images = malloc(sizeof(byte) * 8 * 6 * 6 * 32 * 32);
+
+    // char animations[][] = {"dadwa"};
+
+    FILE *fptr;
+    // fptr = fopen("filename.txt", "r");
 
     while (running)
     {
