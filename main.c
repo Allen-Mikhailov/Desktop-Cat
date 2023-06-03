@@ -13,10 +13,59 @@ typedef uint32_t u32;
 typedef char string[];
 
 int running = 1;
-int client_width = 640;
-int client_height = 640;
+
+byte images[6][8][8][32][32][4];
+
+char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
+char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
+
+const int SPRITE_SCALE = 10;
 
 HDC hdc;
+
+COLORREF TRANSPARENT_COLOR = RGB(255,255,255);
+
+
+void clearFrame(HDC window, int sx, int sy)
+{
+    RECT prect;
+    prect.left = sx;
+    prect.top =  sy;
+    prect.right =  sx + 32 * SPRITE_SCALE;
+    prect.bottom = sy + 32 * SPRITE_SCALE;
+
+    FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(TRANSPARENT_COLOR)));
+}
+
+void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
+{
+    RECT prect;
+    for (int x = 0; x < 32; x++)
+    {
+        for (int y = 0; y < 32; y++)
+        {
+            COLORREF color;
+
+            color   =  RGB(
+                images[anim][dir][frame][y][x][0], 
+                images[anim][dir][frame][y][x][1], 
+                images[anim][dir][frame][y][x][2]);
+
+            if (images[anim][dir][frame][y][x][3] == 0)
+                color = TRANSPARENT_COLOR;
+
+            // color |= (images[anim][dir][frame][y][x][3] << 24);
+
+
+            prect.left = sx + x * SPRITE_SCALE;
+            prect.top =  sy + y * SPRITE_SCALE;
+            prect.right =  sx + (x+1) * SPRITE_SCALE;
+            prect.bottom = sy + (y+1) * SPRITE_SCALE;
+
+            FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(color)));
+        }
+    }
+}
 
 void paint(HWND window)
 {
@@ -25,12 +74,14 @@ void paint(HWND window)
 
     RECT prect = {0, 0, 100, 100};
 
-    const COLORREF rgbRed   =  0x000000FF;
-    FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(rgbRed)));
+    // const COLORREF rgbRed   =  0x000000FF;
+    // FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(rgbRed)));
 
     // HFONT hFont; 
     // hFont = (HFONT)GetStockObject(ANSI_VAR_FONT); 
     // TextOut(hdc, 120, 120, "Sample ANSI_VAR_FONT text", 25); 
+
+    paintFrame(hdc, 0, 0, 1, 0, 0);
 
     EndPaint(window, &ps);
 }
@@ -60,6 +111,11 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     }
 
     return result;
+}
+
+int intfromHex(const char* str)
+{
+    return (int)strtol(str, NULL, 16);
 }
 
 int APIENTRY WinMain(HINSTANCE instance,
@@ -104,7 +160,7 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     // Transparent
     SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(window, RGB(255,255,255), 0, LWA_COLORKEY);
+    SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
 
     // Removing Border
     LONG lExStyle = GetWindowLong(window, GWL_EXSTYLE);
@@ -124,16 +180,8 @@ int APIENTRY WinMain(HINSTANCE instance,
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
 
-    void* images = malloc(sizeof(byte) * 8 * 6 * 6 * 32 * 32);
-
-    char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
-    char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
-
-    printf("%d", atoi("ff"));
-    printf("bruh");
-
+    // Loading anims
     FILE *fptr;
-
     for (int anim = 0; anim < 6; anim++)
     {
         for (int dir = 0; dir < 8; dir++)
@@ -153,16 +201,69 @@ int APIENTRY WinMain(HINSTANCE instance,
 
             fptr = fopen(filename, "r");
 
-            char i[2];
-            char* ip = i;
+            char frameChars[2];
+            char* ip = frameChars;
+            fgets(ip, 2, fptr);
 
-            fgets(ip, 0, fptr);
+            int frames = intfromHex(ip);
 
-            // printf(ip);
+            const int IMAGE_BYTES = 32*32*4;
+            const int IMAGE_STRING_SIZE = IMAGE_BYTES*2;
+
+            char* imageP = (char*) malloc(sizeof(char)*IMAGE_STRING_SIZE);
+            for (int i = 0; i < frames; i++)
+            {
+                char* imagePHead = imageP;
+                fgets(imageP, IMAGE_STRING_SIZE, fptr);
+
+                printf("\n");
+                printf(animations[anim]);
+                printf(directions[dir]);
+                printf("%d", i);
+                printf("\n");
+
+                char captureStr[3];
+
+                captureStr[2] = '\0';
+
+                for (int x = 0; x < 32; x++)
+                {
+                    for (int y = 0; y < 32; y++)
+                    {
+                        // r value
+                        captureStr[0] = *imagePHead;
+                        imagePHead++;
+                        captureStr[1] = *imagePHead;
+                        imagePHead++;
+                        images[anim][dir][i][y][x][0] = intfromHex(captureStr);
+
+                        // g value
+                        captureStr[0] = *imagePHead;
+                        imagePHead++;
+                        captureStr[1] = *imagePHead;
+                        imagePHead++;
+                        images[anim][dir][i][y][x][1] = intfromHex(captureStr);
+
+                        // b value
+                        captureStr[0] = *imagePHead;
+                        imagePHead++;
+                        captureStr[1] = *imagePHead;
+                        imagePHead++;
+                        images[anim][dir][i][y][x][2] = intfromHex(captureStr);
+
+                        // a value
+                        captureStr[0] = *imagePHead;
+                        imagePHead++;
+                        captureStr[1] = *imagePHead;
+                        imagePHead++;
+                        images[anim][dir][i][y][x][3] = intfromHex(captureStr);
+                    }
+                }
+            }
+
+            free(imageP);
         }
     }
-
-    // fptr = fopen("filename.txt", "r");
 
     while (running)
     {
