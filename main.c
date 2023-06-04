@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <dwmapi.h>
+#include <chrono>
 
 #include "libs/guibase.h"
 // #include <wchar.h>
@@ -24,6 +25,12 @@ const int SPRITE_SCALE = 10;
 HDC hdc;
 
 COLORREF TRANSPARENT_COLOR = RGB(255,255,255);
+
+// Cat Variables
+int catX = 0;
+int catY = 0;
+int catDir = 0;
+int catAnim = 0;
 
 
 void clearFrame(HDC window, int sx, int sy)
@@ -62,28 +69,42 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
             prect.right =  sx + (x+1) * SPRITE_SCALE;
             prect.bottom = sy + (y+1) * SPRITE_SCALE;
 
-            FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(color)));
+            HBRUSH hBrush  = CreateSolidBrush(color);
+
+            FillRect(hdc, &prect, hBrush);
+            DeleteObject(hBrush);
         }
     }
 }
 
 void paint(HWND window)
 {
-    PAINTSTRUCT ps;
-    HDC hdc = BeginPaint(window, &ps);
+    RECT Client_Rect;
+	GetClientRect(window,&Client_Rect);
+	int win_width = Client_Rect.right - Client_Rect.left;
+	int win_height = Client_Rect.bottom + Client_Rect.left;
+	PAINTSTRUCT ps;
+	HDC Memhdc;
+	HDC hdc;
+	// HBITMAP Membitmap;
+	hdc = BeginPaint(window, &ps);
+	// Memhdc = CreateCompatibleDC(hdc);
+	// Membitmap = CreateCompatibleBitmap(hdc, win_width, win_height);
+	// SelectObject(Memhdc, Membitmap);
+    
+    catX++;
 
-    RECT prect = {0, 0, 100, 100};
+    paintFrame(Memhdc, catAnim, catDir, 1, catX, catY);
 
-    // const COLORREF rgbRed   =  0x000000FF;
-    // FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(rgbRed)));
+    BringWindowToTop(window);
 
-    // HFONT hFont; 
-    // hFont = (HFONT)GetStockObject(ANSI_VAR_FONT); 
-    // TextOut(hdc, 120, 120, "Sample ANSI_VAR_FONT text", 25); 
+    // BitBlt(hdc, 0, 0, win_width, win_height, Memhdc, 0, 0, SRCCOPY);
+	// DeleteObject(Membitmap);
+	// DeleteDC    (Memhdc);
+	// DeleteDC    (hdc);
+	// EndPaint(window, &ps);
 
-    paintFrame(hdc, 0, 0, 1, 0, 0);
-
-    EndPaint(window, &ps);
+    // SwapBuffers(hdc); 
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -91,8 +112,17 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     LRESULT result;
     switch (message)
     {
+    case WM_CREATE:
+        SetTimer(window, 1, 20, NULL); 
+        break;
     case WM_CLOSE:
         running = 0;
+        break;
+    case WM_ERASEBKGND:
+        return 1;
+
+    case WM_TIMER:
+        InvalidateRect(window, NULL, FALSE);
         break;
 
     case WM_KEYDOWN:
@@ -131,6 +161,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     window_class.lpfnWndProc = WindowProc;
     window_class.hInstance = instance;
     window_class.lpszClassName = "Sample Window Class";
+    // window_class.hbrBackground	= NULL;
 
     RegisterClassA(&window_class);
 
@@ -175,7 +206,7 @@ int APIENTRY WinMain(HINSTANCE instance,
 
 
     // Idk anymore
-    SetWindowPos(window, NULL, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
@@ -274,7 +305,9 @@ int APIENTRY WinMain(HINSTANCE instance,
             DispatchMessage(&message);
         }
 
-        BringWindowToTop(window);
+        // paint(window);
+        SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        
     }
 
     return 0;
