@@ -32,6 +32,14 @@ int catY = 0;
 int catDir = 0;
 int catAnim = 0;
 
+void SetTopMost( HWND hWnd)
+{
+    if(IsWindowVisible(hWnd)==TRUE)
+    {
+        ShowWindow(hWnd,SW_HIDE);
+        ShowWindow(hWnd,SW_RESTORE);
+    }
+}
 
 void clearFrame(HDC window, int sx, int sy)
 {
@@ -79,12 +87,7 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
 
 void paint(HWND window)
 {
-    RECT Client_Rect;
-	GetClientRect(window,&Client_Rect);
-	int win_width = Client_Rect.right - Client_Rect.left;
-	int win_height = Client_Rect.bottom + Client_Rect.left;
 	PAINTSTRUCT ps;
-	HDC Memhdc;
 	HDC hdc;
 	// HBITMAP Membitmap;
 	hdc = BeginPaint(window, &ps);
@@ -94,17 +97,17 @@ void paint(HWND window)
     
     catX++;
 
-    paintFrame(Memhdc, catAnim, catDir, 1, catX, catY);
+    paintFrame(hdc, catAnim, catDir, 1, catX, catY);
 
-    BringWindowToTop(window);
+    // BringWindowToTop(window);
 
     // BitBlt(hdc, 0, 0, win_width, win_height, Memhdc, 0, 0, SRCCOPY);
 	// DeleteObject(Membitmap);
 	// DeleteDC    (Memhdc);
 	// DeleteDC    (hdc);
-	// EndPaint(window, &ps);
+	EndPaint(window, &ps);
 
-    // SwapBuffers(hdc); 
+    SwapBuffers(hdc); 
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -122,9 +125,15 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         return 1;
 
     case WM_TIMER:
+        SetWindowPos(window, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOMOVE);
         InvalidateRect(window, NULL, FALSE);
         break;
-
+    case WM_WINDOWPOSCHANGED:
+            // printf("Changed");
+            // if(IsWindowVisible(window))
+            //     SetWindowPos(window, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOMOVE);
+            
+            break;
     case WM_KEYDOWN:
         
         break;
@@ -161,6 +170,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     window_class.lpfnWndProc = WindowProc;
     window_class.hInstance = instance;
     window_class.lpszClassName = "Sample Window Class";
+    // window_class.
     // window_class.hbrBackground	= NULL;
 
     RegisterClassA(&window_class);
@@ -174,7 +184,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     window = CreateWindowEx(0,
                             "Sample Window Class",
                             "Game",
-                            WS_OVERLAPPED  | WS_VISIBLE | WS_POPUP | WS_DISABLED & ~(WS_EX_APPWINDOW),
+                            WS_OVERLAPPED | WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP | WS_DISABLED | WS_EX_TOOLWINDOW, //& ~(WS_EX_APPWINDOW) ,
                             mi.rcMonitor.left,
                             mi.rcMonitor.top,
                             mi.rcMonitor.right - mi.rcMonitor.left,
@@ -194,22 +204,24 @@ int APIENTRY WinMain(HINSTANCE instance,
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
 
     // Removing Border
-    LONG lExStyle = GetWindowLong(window, GWL_EXSTYLE);
-    lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-    SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
+    // LONG lExStyle = GetWindowLong(window, GWL_EXSTYLE);
+    // lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
+    // SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
 
     // Keeping window on top
-    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
-        | SWP_NOSIZE 
-        | WS_POPUPWINDOW
-        );
 
 
     // Idk anymore
-    SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+    // SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+
+    // Top most
+    SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
+        | SWP_NOSIZE 
+        
+        );
 
     // Loading anims
     FILE *fptr;
@@ -247,11 +259,11 @@ int APIENTRY WinMain(HINSTANCE instance,
                 char* imagePHead = imageP;
                 fgets(imageP, IMAGE_STRING_SIZE, fptr);
 
-                printf("\n");
-                printf(animations[anim]);
-                printf(directions[dir]);
-                printf("%d", i);
-                printf("\n");
+                // printf("\n");
+                // printf(animations[anim]);
+                // printf(directions[dir]);
+                // printf("%d", i);
+                // printf("\n");
 
                 char captureStr[3];
 
@@ -306,7 +318,8 @@ int APIENTRY WinMain(HINSTANCE instance,
         }
 
         // paint(window);
-        SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
+        // SetTopMost(window);
+        SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, 0);
         
     }
 
