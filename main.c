@@ -8,21 +8,21 @@
 #include <GL/gl.h>			/* OpenGL header file */
 #include <GL/glu.h>			/* OpenGL utilities header file */
 #include <stdio.h>
-
+#include "stb_image.h"
 
 void
 display()
 {
     /* rotate a triangle around */
     glClear(GL_COLOR_BUFFER_BIT);
-    glBegin(GL_TRIANGLES);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glVertex2i(0,  1);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glVertex2i(-1, -1);
-    glColor3f(1.0f, 1.0f, 1.0f);
-    glVertex2i(1, -1);
-    glEnd();
+    // glBegin(GL_TRIANGLES);
+    // glColor3f(1.0f, 1.0f, 1.0f);
+    // glVertex2i(0,  1);
+    // glColor3f(1.0f, 1.0f, 1.0f);
+    // glVertex2i(-1, -1);
+    // glColor3f(1.0f, 1.0f, 1.0f);
+    // glVertex2i(1, -1);
+    // glEnd();
     glFlush();
 }
 
@@ -132,6 +132,20 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 
     return hWnd;
 }    
+
+char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
+char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
+
+unsigned int catTextures[8][6][8];
+
+void loadGlAssets()
+{
+    int width, height, nrChannels;
+    unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0); 
+
+    unsigned int texture;
+    glGenTextures(1, &texture); 
+}
 
 int APIENTRY
 WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
