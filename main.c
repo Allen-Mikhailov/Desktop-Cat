@@ -5,8 +5,6 @@
 #include <stdio.h>
 #include <dwmapi.h>
 
-#include "libs/guibase.h"
-// #include <wchar.h>
 
 #ifdef u32
 typedef uint32_t u32;
@@ -51,6 +49,22 @@ void clearFrame(HDC window, int sx, int sy)
     prect.bottom = sy + 32 * SPRITE_SCALE;
 
     FillRect(hdc, &prect, (HBRUSH) (CreateSolidBrush(TRANSPARENT_COLOR)));
+}
+
+void
+display()
+{
+    /* rotate a triangle around */
+    glClear(GL_COLOR_BUFFER_BIT);
+    glBegin(GL_TRIANGLES);
+    glColor3f(1.0f, 0.0f, 0.0f);
+    glVertex2i(0,  1);
+    glColor3f(0.0f, 1.0f, 0.0f);
+    glVertex2i(-1, -1);
+    glColor3f(0.0f, 0.0f, 1.0f);
+    glVertex2i(1, -1);
+    glEnd();
+    glFlush();
 }
 
 void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
@@ -103,6 +117,9 @@ void paint(HWND window)
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 {
     LRESULT result;
+
+    static PAINTSTRUCT ps;
+
     switch (message)
     {
     case WM_CREATE:
@@ -128,7 +145,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         
         break;
     case WM_PAINT:
-        paint(window);
+        display();
+        BeginPaint(window, &ps);
+        EndPaint(window, &ps);
         break;
 
     default:
@@ -154,6 +173,9 @@ int APIENTRY WinMain(HINSTANCE instance,
 {
 
     HWND window;
+    HGLRC hRC;
+
+    PIXELFORMATDESCRIPTOR pfd;
 
     WNDCLASSA window_class = {0};
     window_class.style = CS_HREDRAW | CS_VREDRAW;
@@ -189,20 +211,16 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     hdc = GetDC(window);
 
+    memset(&pfd, 0, sizeof(pfd));
+    pfd.nSize        = sizeof(pfd);
+    pfd.nVersion     = 1;
+    pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | 0;
+    pfd.iPixelType   = PFD_TYPE_RGBA;
+    pfd.cColorBits   = 32;
+
     // Transparent
     SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED);
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
-
-    // Removing Border
-    // LONG lExStyle = GetWindowLong(window, GWL_EXSTYLE);
-    // lExStyle &= ~(WS_EX_DLGMODALFRAME | WS_EX_CLIENTEDGE | WS_EX_STATICEDGE);
-    // SetWindowLongPtr(window, GWL_EXSTYLE, lExStyle);
-
-    // Keeping window on top
-
-
-    // Idk anymore
-    // SetWindowPos(window, HWND_TOPMOST, 0,0,0,0, SWP_FRAMECHANGED | SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_NOOWNERZORDER);
 
     LONG cur_style = GetWindowLong(window, GWL_EXSTYLE);
     SetWindowLong(window, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
@@ -212,6 +230,9 @@ int APIENTRY WinMain(HINSTANCE instance,
         | SWP_NOSIZE 
         
         );
+
+    hRC = wglCreateContext(hdc);
+    wglMakeCurrent(hdc, hRC);
 
     // Loading anims
     FILE *fptr;
