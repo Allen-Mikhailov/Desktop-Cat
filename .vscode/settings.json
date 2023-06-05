@@ -4,7 +4,8 @@
         "tuple": "cpp",
         "utility": "cpp",
         "windows.h": "c",
-        "gdiplusinit.h": "c"
+        "gdiplusinit.h": "c",
+        "xiosbase": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
