@@ -1,8 +1,9 @@
 #include <windows.h>
+#include <GL/gl.h>			/* OpenGL header file */
+#include <GL/glu.h>			/* OpenGL utilities header file */
 #include <stdint.h>
 #include <stdio.h>
 #include <dwmapi.h>
-#include <chrono>
 
 #include "libs/guibase.h"
 // #include <wchar.h>
@@ -67,7 +68,8 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
                 images[anim][dir][frame][y][x][2]);
 
             if (images[anim][dir][frame][y][x][3] == 0)
-                color = TRANSPARENT_COLOR;
+                // color = TRANSPARENT_COLOR;
+                continue;
 
             // color |= (images[anim][dir][frame][y][x][3] << 24);
 
@@ -87,27 +89,15 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
 
 void paint(HWND window)
 {
-	PAINTSTRUCT ps;
-	HDC hdc;
-	// HBITMAP Membitmap;
-	hdc = BeginPaint(window, &ps);
-	// Memhdc = CreateCompatibleDC(hdc);
-	// Membitmap = CreateCompatibleBitmap(hdc, win_width, win_height);
-	// SelectObject(Memhdc, Membitmap);
-    
+    clearFrame(hdc, catX, catY);
     catX++;
-
+    
     paintFrame(hdc, catAnim, catDir, 1, catX, catY);
 
-    // BringWindowToTop(window);
 
-    // BitBlt(hdc, 0, 0, win_width, win_height, Memhdc, 0, 0, SRCCOPY);
-	// DeleteObject(Membitmap);
-	// DeleteDC    (Memhdc);
-	// DeleteDC    (hdc);
-	EndPaint(window, &ps);
+	// EndPaint(window, &ps);
 
-    SwapBuffers(hdc); 
+    // SwapBuffers(hdc); 
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -121,8 +111,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     case WM_CLOSE:
         running = 0;
         break;
-    case WM_ERASEBKGND:
-        return 1;
+    // case WM_ERASEBKGND:
+    //     return 1;
 
     case WM_TIMER:
         SetWindowPos(window, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOMOVE);
