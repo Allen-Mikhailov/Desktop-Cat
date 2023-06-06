@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdio.h>
 #include <dwmapi.h>
+#include <cmath>
 
 int running = 1;
 
@@ -9,17 +10,19 @@ HDC hdc;
 COLORREF TRANSPARENT_COLOR = RGB(255,255,255);
 
 // Cat Variables
-int catX = 0;
-int catY = 0;
+float catX = 0;
+float catY = 0;
 int catDir = 0;
 int catAnim = 0;
 
-byte images[6][8][8][32][32][4];
+BYTE images[6][8][8][32][32][4];
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
-const int SPRITE_SCALE = 10;
+const int SPRITE_SCALE = 5;
+
+using namespace std;
 
 void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
 {
@@ -36,10 +39,7 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
                 images[anim][dir][frame][y][x][2]);
 
             if (images[anim][dir][frame][y][x][3] == 0)
-                // color = TRANSPARENT_COLOR;
-                continue;
-
-            // color |= (images[anim][dir][frame][y][x][3] << 24);
+                color = TRANSPARENT_COLOR;
 
 
             prect.left = sx + x * SPRITE_SCALE;
@@ -57,10 +57,28 @@ void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
 
 void paint(HWND window)
 {
+    POINT p;
+    GetCursorPos(&p);
+
+    float xDiff = (p.x-catX);
+    float yDiff = (p.y-catY);
+    float c = hypot(p.x-catX, p.y-catY);
+
+    if (c != 0)
+    {
+        if (xDiff != 0)
+            catX += min(abs(xDiff)/c*5, abs(xDiff)) * (xDiff/abs(xDiff));
+        if (yDiff != 0)
+            catY += min(abs(yDiff)/c*5, abs(yDiff)) * (yDiff/abs(yDiff));
+    }
+
+    // int dir = 
+
     // clearFrame(hdc, catX, catY);
-    catX++;
+
+    // printf("paint");
     
-    paintFrame(hdc, catAnim, catDir, 1, catX, catY);
+    paintFrame(hdc, catAnim, catDir, 1, (int) catX-16*SPRITE_SCALE, (int) catY-16*SPRITE_SCALE);
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -88,7 +106,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         
         break;
     case WM_PAINT:
-        
+        paint(window);
         break;
 
     default:
