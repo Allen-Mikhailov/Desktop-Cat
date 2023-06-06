@@ -2,6 +2,13 @@
 #include <GLFW/glfw3.h>
 #include <glad/gl.h>
 
+#include <stdio.h>
+
+void error_callback(int error, const char* description)
+{
+    fprintf(stderr, "Error: %s\n", description);
+}
+
 int main(void)
 {
     GLFWwindow* window;
@@ -14,12 +21,19 @@ int main(void)
     window = glfwCreateWindow(640, 480, "Hello World", NULL, NULL);
     if (!window)
     {
+        printf("Terminate");
         glfwTerminate();
         return -1;
     }
 
+    printf("made it here");
+    glfwSetErrorCallback(error_callback);
+
     /* Make the window's context current */
     glfwMakeContextCurrent(window);
+    gladLoadGL(glfwGetProcAddress);
+
+    printf("Made it herde2");
 
     /* Loop until the user closes the window */
     while (!glfwWindowShouldClose(window))
@@ -29,7 +43,7 @@ int main(void)
 
         /* Swap front and back buffers */
         glfwSwapBuffers(window);
-
+        
         /* Poll for and process events */
         glfwPollEvents();
     }

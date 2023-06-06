@@ -14,7 +14,7 @@
 #include <stdio.h>
 
 #define STB_IMAGE_IMPLEMENTATION
-#include "include/stb_image.h"
+#include "stb_image.h"
 
 int fileExists (char* name) {
     FILE *file;
