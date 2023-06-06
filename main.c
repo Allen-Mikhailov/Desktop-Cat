@@ -4,13 +4,8 @@
    palette). */
 
 
-#include <windows.h>			/* must include this before GL/gl.h */
+#include <windows.h>	
 
-#include <GL/gl.h>			/* OpenGL header file */
-#include <GL/glu.h>
-
-#define GL_GLEXT_PROTOTYPES			/* OpenGL utilities header file */
-#include <GL/glext.h>
 #include <stdio.h>
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -31,7 +26,7 @@ void
 display()
 {
     /* rotate a triangle around */
-    glClear(GL_COLOR_BUFFER_BIT);
+    // glClear(GL_COLOR_BUFFER_BIT);
     // glBegin(GL_TRIANGLES);
     // glColor3f(1.0f, 1.0f, 1.0f);
     // glVertex2i(0,  1);
@@ -44,14 +39,14 @@ display()
     int width = 100;
     int height = 100;
 
-    glBegin(GL_QUADS);
-    glTexCoord2i(0, 0); glVertex2i(0, 0);
-    glTexCoord2i(0, 1); glVertex2i(0, height);
-    glTexCoord2i(1, 1); glVertex2i(width, height);
-    glTexCoord2i(1, 0); glVertex2i(width, 0);
-    glEnd();
+    // glBegin(GL_QUADS);
+    // glTexCoord2i(0, 0); glVertex2i(0, 0);
+    // glTexCoord2i(0, 1); glVertex2i(0, height);
+    // glTexCoord2i(1, 1); glVertex2i(width, height);
+    // glTexCoord2i(1, 0); glVertex2i(width, 0);
+    // glEnd();
 
-    glFlush();
+    // glFlush();
 
     // glutSwapBuffers();
 }
@@ -70,7 +65,7 @@ WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	    return 0;
 
     case WM_SIZE:
-        glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+        // glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
         PostMessage(hWnd, WM_PAINT, 0, 0);
 	    return 0;
 
@@ -144,29 +139,6 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 
     hDC = GetDC(hWnd);
 
-    /* there is no guarantee that the contents of the stack that become
-       the pfd are zeroed, therefore _make sure_ to clear these bits. */
-    memset(&pfd, 0, sizeof(pfd));
-    pfd.nSize        = sizeof(pfd);
-    pfd.nVersion     = 1;
-    pfd.dwFlags      = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | flags;
-    pfd.iPixelType   = type;
-    pfd.cColorBits   = 32;
-
-    pf = ChoosePixelFormat(hDC, &pfd);
-    if (pf == 0) {
-	MessageBox(NULL, "ChoosePixelFormat() failed:  "
-		   "Cannot find a suitable pixel format.", "Error", MB_OK); 
-	return 0;
-    } 
- 
-    if (SetPixelFormat(hDC, pf, &pfd) == FALSE) {
-	MessageBox(NULL, "SetPixelFormat() failed:  "
-		   "Cannot set format specified.", "Error", MB_OK);
-	return 0;
-    } 
-
-    DescribePixelFormat(hDC, pf, sizeof(PIXELFORMATDESCRIPTOR), &pfd);
 
     ReleaseDC(hWnd, hDC);
 
@@ -212,21 +184,21 @@ void loadGlAssets()
                 }
 
                 // Loading Texture
-                unsigned int texture;   
-                glGenTextures(1, &texture); 
-                glBindTexture(GL_TEXTURE_2D, texture);
+                // unsigned int texture;   
+                // glGenTextures(1, &texture); 
+                // glBindTexture(GL_TEXTURE_2D, texture);
 
-                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+                // glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 
-                int width, height, nrChannels;
-                unsigned char *data = stbi_load(filestr, &width, &height, &nrChannels, 0);   
+                // int width, height, nrChannels;
+                // unsigned char *data = stbi_load(filestr, &width, &height, &nrChannels, 0);   
 
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-                glGenerateMipmap(GL_TEXTURE_2D);
+                // glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                // glGenerateMipmap(GL_TEXTURE_2D);
 
-                stbi_image_free(data);
+                // stbi_image_free(data);
 
-                catTextures[anim][dir][frame] = texture;
+                // catTextures[anim][dir][frame] = texture;
             }
 
             catAnimationFrames[anim][dir] = frame-1;
@@ -239,7 +211,7 @@ WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
 	LPSTR lpszCmdLine, int nCmdShow)
 {
     HDC hDC;				/* device context */
-    HGLRC hRC;				/* opengl context */
+    // HGLRC hRC;				/* opengl context */
     HWND  hWnd;				/* window */
     MSG   msg;				/* message */
 
@@ -258,12 +230,12 @@ WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
 	exit(1);
 
     hDC = GetDC(hWnd);
-    hRC = wglCreateContext(hDC);
-    wglMakeCurrent(hDC, hRC);
+    // hRC = wglCreateContext(hDC);
+    // wglMakeCurrent(hDC, hRC);
 
     ShowWindow(hWnd, nCmdShow);
 
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+    // glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
 
     // printf("%d", fileExists("./imgs/cats/LA-E .0.png"));
 
@@ -274,9 +246,9 @@ WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
         DispatchMessage(&msg);
     }
 
-    wglMakeCurrent(NULL, NULL);
+    // wglMakeCurrent(NULL, NULL);
     ReleaseDC(hWnd, hDC);
-    wglDeleteContext(hRC);
+    // wglDeleteContext(hRC);
     DestroyWindow(hWnd);
 
     return msg.wParam;

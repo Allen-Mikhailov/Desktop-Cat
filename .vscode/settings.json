@@ -6,7 +6,9 @@
         "windows.h": "c",
         "gdiplusinit.h": "c",
         "xiosbase": "c",
-        "stb_image.h": "c"
+        "stb_image.h": "c",
+        "gl.h": "c",
+        "glfw3native.h": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
