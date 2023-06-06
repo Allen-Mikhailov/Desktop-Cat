@@ -5,10 +5,27 @@
 
 
 #include <windows.h>			/* must include this before GL/gl.h */
+
 #include <GL/gl.h>			/* OpenGL header file */
-#include <GL/glu.h>			/* OpenGL utilities header file */
+#include <GL/glu.h>
+
+#define GL_GLEXT_PROTOTYPES			/* OpenGL utilities header file */
+#include <GL/glext.h>
 #include <stdio.h>
-#include "stb_image.h"
+
+#define STB_IMAGE_IMPLEMENTATION
+#include "include/stb_image.h"
+
+int fileExists (char* name) {
+    FILE *file;
+    if((file = fopen(name,"r"))!=NULL)
+    {
+        // file exists
+        fclose(file);
+        return 1;
+    }
+    return 0;
+}
 
 void
 display()
@@ -23,7 +40,20 @@ display()
     // glColor3f(1.0f, 1.0f, 1.0f);
     // glVertex2i(1, -1);
     // glEnd();
+
+    int width = 100;
+    int height = 100;
+
+    glBegin(GL_QUADS);
+    glTexCoord2i(0, 0); glVertex2i(0, 0);
+    glTexCoord2i(0, 1); glVertex2i(0, height);
+    glTexCoord2i(1, 1); glVertex2i(width, height);
+    glTexCoord2i(1, 0); glVertex2i(width, 0);
+    glEnd();
+
     glFlush();
+
+    // glutSwapBuffers();
 }
 
 
@@ -34,15 +64,15 @@ WindowProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 
     switch(uMsg) {
     case WM_PAINT:
-	display();
-	BeginPaint(hWnd, &ps);
-	EndPaint(hWnd, &ps);
-	return 0;
+        display();
+        BeginPaint(hWnd, &ps);
+        EndPaint(hWnd, &ps);
+	    return 0;
 
     case WM_SIZE:
-	glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
-	PostMessage(hWnd, WM_PAINT, 0, 0);
-	return 0;
+        glViewport(0, 0, LOWORD(lParam), HIWORD(lParam));
+        PostMessage(hWnd, WM_PAINT, 0, 0);
+	    return 0;
 
     case WM_CHAR:
 	switch (wParam) {
@@ -102,6 +132,16 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 	return NULL;
     }
 
+    // Transparent
+    SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
+    SetLayeredWindowAttributes(hWnd, RGB(255, 255, 255), 0, LWA_COLORKEY);
+
+    LONG cur_style = GetWindowLong(hWnd, GWL_EXSTYLE);
+    SetWindowLong(hWnd, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
+
+    // Top most
+    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+
     hDC = GetDC(hWnd);
 
     /* there is no guarantee that the contents of the stack that become
@@ -136,15 +176,62 @@ CreateOpenGLWindow(char* title, int x, int y, int width, int height,
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
-unsigned int catTextures[8][6][8];
+unsigned int catTextures[6][8][8];
+unsigned int catAnimationFrames[6][8];
 
 void loadGlAssets()
 {
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load("container.jpg", &width, &height, &nrChannels, 0); 
 
-    unsigned int texture;
-    glGenTextures(1, &texture); 
+    for (int anim = 0; anim < 6; anim++)
+    {
+        for (int dir = 0; dir < 8; dir++)
+        {
+            char filestr[] = "./imgs/cat/00-00.0.png";
+            // Anim Name
+            filestr[11] = animations[anim][0];
+            filestr[12] = animations[anim][1];
+
+            // Direction name
+            filestr[14] = directions[dir][0];
+            filestr[15] = directions[dir][1];
+
+            // printf(filestr);
+
+            int frame;
+            for(int frame = 0; frame < 8; frame++)
+            {
+                // Frame
+                char snum[2];
+                itoa(frame, snum, 10);
+                filestr[17] = snum[0];
+
+                if (!fileExists(filestr))
+                {
+                    frame++;
+                    break;
+                }
+
+                // Loading Texture
+                unsigned int texture;   
+                glGenTextures(1, &texture); 
+                glBindTexture(GL_TEXTURE_2D, texture);
+
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+
+                int width, height, nrChannels;
+                unsigned char *data = stbi_load(filestr, &width, &height, &nrChannels, 0);   
+
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+                glGenerateMipmap(GL_TEXTURE_2D);
+
+                stbi_image_free(data);
+
+                catTextures[anim][dir][frame] = texture;
+            }
+
+            catAnimationFrames[anim][dir] = frame-1;
+        }
+    }
 }
 
 int APIENTRY
@@ -164,22 +251,11 @@ WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
     int mWidth  = mi.rcMonitor.right - mi.rcMonitor.left;
     int mHeight = mi.rcMonitor.bottom - mi.rcMonitor.top;
 
-    hWnd = CreateOpenGLWindow("minimal", 0, 0, mWidth, mHeight, PFD_TYPE_RGBA, 0);
+    char* windowName = "Cat";
+
+    hWnd = CreateOpenGLWindow(windowName, 0, 0, mWidth, mHeight, PFD_TYPE_RGBA, 0);
     if (hWnd == NULL)
 	exit(1);
-
-    // Transparent
-    SetWindowLong(hWnd, GWL_EXSTYLE, GetWindowLong(hWnd, GWL_EXSTYLE) | WS_EX_LAYERED);
-    SetLayeredWindowAttributes(hWnd, RGB(255, 255, 255), 0, LWA_COLORKEY);
-
-    LONG cur_style = GetWindowLong(hWnd, GWL_EXSTYLE);
-    SetWindowLong(hWnd, GWL_EXSTYLE, cur_style | WS_EX_TRANSPARENT | WS_EX_LAYERED);
-
-    // Top most
-    SetWindowPos(hWnd, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE 
-        | SWP_NOSIZE 
-        
-        );
 
     hDC = GetDC(hWnd);
     hRC = wglCreateContext(hDC);
@@ -188,6 +264,10 @@ WinMain(HINSTANCE hCurrentInst, HINSTANCE hPreviousInst,
     ShowWindow(hWnd, nCmdShow);
 
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
+
+    // printf("%d", fileExists("./imgs/cats/LA-E .0.png"));
+
+    loadGlAssets();
 
     while(GetMessage(&msg, hWnd, 0, 0)) {
         TranslateMessage(&msg);

@@ -5,7 +5,8 @@
         "utility": "cpp",
         "windows.h": "c",
         "gdiplusinit.h": "c",
-        "xiosbase": "c"
+        "xiosbase": "c",
+        "stb_image.h": "c"
     },
     "C_Cpp.errorSquiggles": "enabled"
 }
