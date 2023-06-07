@@ -1,6 +1,7 @@
 #include <windows.h>
 #include <stdint.h>
 #include <dwmapi.h>
+#include <stdlib.h>
 
 #include <string.h>
 
@@ -41,6 +42,9 @@ double catAnimF = 0;
 
 double catX = 500;
 double catY = 500;
+
+const int targetResetTime = 1000;
+double catTargetOffsetX = 0, catTargetOffsetY = 0;
 
 double catDirection = 0;
 double catVelocity = 0;
@@ -110,8 +114,11 @@ void paint(HWND window)
     POINT p;
     GetCursorPos(&p);
 
-    double xDiff = (p.x-catX-SPRITE_UNIT/2);
-    double yDiff = (p.y-catY-SPRITE_UNIT/2);
+    int targetX = catTargetOffsetX;
+    int targetY = catTargetOffsetY;
+
+    double xDiff = (targetX-catX-SPRITE_UNIT/2);
+    double yDiff = (targetY-catY-SPRITE_UNIT/2);
     double c = hypot(xDiff, yDiff);
 
     // Direction
@@ -149,7 +156,7 @@ void paint(HWND window)
             catVelocity =  max(catVelocity - catAcceleration * delta_time, 0.0);
         else
             catVelocity =  min(catVelocity + catAcceleration * delta_time, catVelocityCap);
-        printf("%f\n", estimatedTime);
+        // printf("%f\n", estimatedTime);
         // if (catVelocity)
 
 
@@ -178,13 +185,14 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     switch (message)
     {
     case WM_CREATE:
-        // SetTimer(window, 1, 20, NULL); 
+        SetTimer(window, 1, 1, NULL); 
+        SetTimer(window, 2, targetResetTime, NULL); 
         hdcMem = CreateCompatibleDC(hdc);
 
         // 1x 1025 544
         // 2x 2048, 1088
         // 3x 3072, 1632
-        catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats2x.bmp", IMAGE_BITMAP, 2048, 1088, LR_LOADFROMFILE);
+        catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats2x.bmp", IMAGE_BITMAP, 3072, 1632, LR_LOADFROMFILE);
 
         oldBitmap = SelectObject(hdcMem, catSpriteMap);
         GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
@@ -192,19 +200,25 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     case WM_CLOSE:
         running = 0;
         break;
-    // case WM_ERASEBKGND:
-    //     return 1;
 
     case WM_TIMER:
-        // SetWindowPos(window, HWND_TOP, 0, 0, 0, 0, SWP_SHOWWINDOW|SWP_NOSIZE|SWP_NOMOVE);
-        InvalidateRect(window, NULL, FALSE);
+        if (w_param == 1)
+            SendMessage(window, WM_PAINT, NULL, NULL);
+        else if (w_param == 2)
+        {
+            // int offset = 300;
+            catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
+            catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
+        }
+        // if (w_param == 1)
+        //     printf("Timer2");
         break;
     case WM_KEYDOWN:
         
         break;
     case WM_PAINT:
         paint(window);
-        break;
+        return DefWindowProc(window, message, w_param, l_param);
 
     default:
         result = DefWindowProc(window,
@@ -228,9 +242,9 @@ int APIENTRY WinMain(HINSTANCE instance,
                      int cmd_show)
 {
 
-    HWND window;
+    srand(time(NULL));
 
-    PIXELFORMATDESCRIPTOR pfd;
+    HWND window;
 
     WNDCLASSA window_class = {0};
     window_class.style = CS_HREDRAW | CS_VREDRAW;
