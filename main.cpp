@@ -1,58 +1,59 @@
 #include <windows.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <dwmapi.h>
+#include <string.h>
 #include <cmath>
+#include <iostream>
+#include <time.h>
 
 int running = 1;
 
+clock_t startT;
+clock_t lastT;
+
 HDC hdc;
+HDC hdcMem;
+BITMAP bitmap;
+HGDIOBJ oldBitmap;
+HINSTANCE hinstance;
 
 COLORREF TRANSPARENT_COLOR = RGB(255,255,255);
+HBRUSH transparentBrush = (HBRUSH) CreateSolidBrush(RGB(255, 0, 0));
+
+// Window vars
+int client_width;
+int client_height;
+
+HBITMAP catSpriteMap;
 
 // Cat Variables
-float catX = 0;
+double catX = 0;
 float catY = 0;
 int catDir = 0;
 int catAnim = 0;
 
-BYTE images[6][8][8][32][32][4];
-
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
-const int SPRITE_SCALE = 5;
+const int SPRITE_SCALE = 2;
+const int SPRITE_SIZE = 32;
+const int SPRITE_UNIT = SPRITE_SCALE*SPRITE_SIZE;
 
 using namespace std;
 
-void paintFrame(HDC window, int anim, int dir, int frame, int sx, int sy)
+void DrawCat(int x, int y, int anim, int dir, int frame)
 {
-    RECT prect;
-    for (int x = 0; x < 32; x++)
-    {
-        for (int y = 0; y < 32; y++)
-        {
-            COLORREF color;
+    // Drawing the cat and stuff
+    int mapX = anim*4 + frame%4;
+    int mapY = dir*2 + frame/4 + 1;
+    BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, hdcMem, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 
-            color   =  RGB(
-                images[anim][dir][frame][y][x][0], 
-                images[anim][dir][frame][y][x][1], 
-                images[anim][dir][frame][y][x][2]);
+    // Clearing Area around the cat
 
-            if (images[anim][dir][frame][y][x][3] == 0)
-                color = TRANSPARENT_COLOR;
-
-
-            prect.left = sx + x * SPRITE_SCALE;
-            prect.top =  sy + y * SPRITE_SCALE;
-            prect.right =  sx + (x+1) * SPRITE_SCALE;
-            prect.bottom = sy + (y+1) * SPRITE_SCALE;
-
-            HBRUSH hBrush  = CreateSolidBrush(color);
-
-            FillRect(hdc, &prect, hBrush);
-            DeleteObject(hBrush);
-        }
-    }
+    // top
+    RECT rect = {catX-SPRITE_UNIT, catY-SPRITE_UNIT, catX+SPRITE_UNIT*2, catY};
+    FillRect(hdc, &rect, transparentBrush);
 }
 
 void paint(HWND window)
@@ -72,13 +73,12 @@ void paint(HWND window)
             catY += min(abs(yDiff)/c*5, abs(yDiff)) * (yDiff/abs(yDiff));
     }
 
-    // int dir = 
+    double elapsed_time = ( (double)clock() - (double)startT)/CLOCKS_PER_SEC;
+    double delta_time = ( (double)clock() - (double)lastT)/CLOCKS_PER_SEC;
+    lastT = clock();
 
-    // clearFrame(hdc, catX, catY);
+    DrawCat((int) catX, (int) catY, 5, 6, (int) (elapsed_time/.1)%8);
 
-    // printf("paint");
-    
-    paintFrame(hdc, catAnim, catDir, 1, (int) catX-16*SPRITE_SCALE, (int) catY-16*SPRITE_SCALE);
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -90,7 +90,12 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     switch (message)
     {
     case WM_CREATE:
-        SetTimer(window, 1, 20, NULL); 
+        // SetTimer(window, 1, 20, NULL); 
+        hdcMem = CreateCompatibleDC(hdc);
+        catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats2x.bmp", IMAGE_BITMAP, 2048, 1088, LR_LOADFROMFILE);
+
+        oldBitmap = SelectObject(hdcMem, catSpriteMap);
+        GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
         break;
     case WM_CLOSE:
         running = 0;
@@ -125,94 +130,6 @@ int intfromHex(const char* str)
     return (int)strtol(str, NULL, 16);
 }
 
-void loadImages()
-{
-    // Loading anims
-    FILE *fptr;
-    for (int anim = 0; anim < 6; anim++)
-    {
-        for (int dir = 0; dir < 8; dir++)
-        {
-            char filename[] = "./CatAnims/FF-FF.32x32frames";
-
-            // Anim Name
-            filename[11] = animations[anim][0];
-            filename[12] = animations[anim][1];
-
-
-            // Direction name
-            filename[14] = directions[dir][0];
-            filename[15] = directions[dir][1];
-
-            // atoi();
-
-            fptr = fopen(filename, "r");
-
-            char frameChars[2];
-            char* ip = frameChars;
-            fgets(ip, 2, fptr);
-
-            int frames = intfromHex(ip);
-
-            const int IMAGE_BYTES = 32*32*4;
-            const int IMAGE_STRING_SIZE = IMAGE_BYTES*2;
-
-            char* imageP = (char*) malloc(sizeof(char)*IMAGE_STRING_SIZE);
-            for (int i = 0; i < frames; i++)
-            {
-                char* imagePHead = imageP;
-                fgets(imageP, IMAGE_STRING_SIZE, fptr);
-
-                // printf("\n");
-                // printf(animations[anim]);
-                // printf(directions[dir]);
-                // printf("%d", i);
-                // printf("\n");
-
-                char captureStr[3];
-
-                captureStr[2] = '\0';
-
-                for (int x = 0; x < 32; x++)
-                {
-                    for (int y = 0; y < 32; y++)
-                    {
-                        // r value
-                        captureStr[0] = *imagePHead;
-                        imagePHead++;
-                        captureStr[1] = *imagePHead;
-                        imagePHead++;
-                        images[anim][dir][i][y][x][0] = intfromHex(captureStr);
-
-                        // g value
-                        captureStr[0] = *imagePHead;
-                        imagePHead++;
-                        captureStr[1] = *imagePHead;
-                        imagePHead++;
-                        images[anim][dir][i][y][x][1] = intfromHex(captureStr);
-
-                        // b value
-                        captureStr[0] = *imagePHead;
-                        imagePHead++;
-                        captureStr[1] = *imagePHead;
-                        imagePHead++;
-                        images[anim][dir][i][y][x][2] = intfromHex(captureStr);
-
-                        // a value
-                        captureStr[0] = *imagePHead;
-                        imagePHead++;
-                        captureStr[1] = *imagePHead;
-                        imagePHead++;
-                        images[anim][dir][i][y][x][3] = intfromHex(captureStr);
-                    }
-                }
-            }
-
-            free(imageP);
-        }
-    }
-}
-
 int APIENTRY WinMain(HINSTANCE instance,
                      HINSTANCE prev_instance,
                      LPSTR cmd_line,
@@ -230,6 +147,8 @@ int APIENTRY WinMain(HINSTANCE instance,
     window_class.lpszClassName = "Sample Window Class";
     // window_class.hbrBackground	= NULL;
 
+    hinstance = instance;
+
     RegisterClassA(&window_class);
 
     HMONITOR hmon = MonitorFromWindow(NULL,
@@ -237,16 +156,19 @@ int APIENTRY WinMain(HINSTANCE instance,
     MONITORINFO mi = { sizeof(mi) };
     GetMonitorInfo(hmon, &mi);
 
+    client_width = mi.rcMonitor.right - mi.rcMonitor.left;
+    client_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+
     int flags = WS_OVERLAPPED | WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP | WS_DISABLED | WS_EX_TOOLWINDOW;
 
-    window = CreateWindowEx(0,
+    window = CreateWindowExA(0,
                             "Sample Window Class",
                             "Game",
                             flags,
                             mi.rcMonitor.left,
                             mi.rcMonitor.top,
-                            mi.rcMonitor.right - mi.rcMonitor.left,
-                            mi.rcMonitor.bottom - mi.rcMonitor.top,
+                            client_width,
+                            client_height,
                             0,
                             0,
                             instance,
@@ -258,15 +180,20 @@ int APIENTRY WinMain(HINSTANCE instance,
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
-    loadImages();
+    // memory Buffer
+
+    startT = clock();
+    lastT = clock();
     
     while (running)
     {
         MSG message;
         while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
         {
+            // printf("Message");
             TranslateMessage(&message);
             DispatchMessage(&message);
+            Sleep(1);
         }
     }
 
