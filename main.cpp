@@ -52,7 +52,7 @@ const double catAcceleration = 1000;
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
-const int SPRITE_SCALE = 2;
+const int SPRITE_SCALE = 3;
 const int SPRITE_SIZE = 32;
 const int SPRITE_UNIT = SPRITE_SCALE*SPRITE_SIZE;
 
@@ -180,6 +180,10 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     case WM_CREATE:
         // SetTimer(window, 1, 20, NULL); 
         hdcMem = CreateCompatibleDC(hdc);
+
+        // 1x 1025 544
+        // 2x 2048, 1088
+        // 3x 3072, 1632
         catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats2x.bmp", IMAGE_BITMAP, 2048, 1088, LR_LOADFROMFILE);
 
         oldBitmap = SelectObject(hdcMem, catSpriteMap);
