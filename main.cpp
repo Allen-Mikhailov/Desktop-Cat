@@ -5,10 +5,8 @@
 
 #include <string.h>
 
-#include <stdio.h>
+// #include <stdio.h>
 #include <time.h>
-
-#include <iostream>
 
 #define _USE_MATH_DEFINES
 #include <cmath>
@@ -50,8 +48,8 @@ double catDirection = 0;
 double catVelocity = 0;
 
 const double catTurnSpeed = 3;
-const double catVelocityCap = 500;
-const double catAcceleration = 1000;
+const double catVelocityCap = 1250;
+const double catAcceleration = 750;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
@@ -114,8 +112,8 @@ void paint(HWND window)
     POINT p;
     GetCursorPos(&p);
 
-    int targetX = catTargetOffsetX;
-    int targetY = catTargetOffsetY;
+    int targetX = p.x; //catTargetOffsetX;
+    int targetY = p.y; //catTargetOffsetY;
 
     double xDiff = (targetX-catX-SPRITE_UNIT/2);
     double yDiff = (targetY-catY-SPRITE_UNIT/2);
@@ -173,7 +171,6 @@ void paint(HWND window)
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
 
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8);
-
 }
 
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
@@ -189,10 +186,11 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         SetTimer(window, 2, targetResetTime, NULL); 
         hdcMem = CreateCompatibleDC(hdc);
 
-        // 1x 1025 544
+        // 1x 1024 544
         // 2x 2048, 1088
         // 3x 3072, 1632
-        catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats2x.bmp", IMAGE_BITMAP, 3072, 1632, LR_LOADFROMFILE);
+        catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats.bmp", IMAGE_BITMAP, 
+            1024*SPRITE_SCALE, 544*SPRITE_SCALE, LR_LOADFROMFILE);
 
         oldBitmap = SelectObject(hdcMem, catSpriteMap);
         GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
@@ -285,8 +283,6 @@ int APIENTRY WinMain(HINSTANCE instance,
     SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-
-    // memory Buffer
 
     startT = clock();
     lastT = clock();
