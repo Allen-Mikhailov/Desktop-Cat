@@ -47,9 +47,9 @@ double catTargetOffsetX = 0, catTargetOffsetY = 0;
 double catDirection = 0;
 double catVelocity = 0;
 
-const double catTurnSpeed = 3;
-const double catVelocityCap = 1250;
-const double catAcceleration = 750;
+const double catTurnSpeed = 2;
+const double catVelocityCap = 500;
+const double catAcceleration = 250;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
@@ -103,6 +103,12 @@ double realisticQuadratic(double a, double b, double c)
     return r1;
 }
 
+void changeCatTarget()
+{
+    catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
+    catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
+}
+
 void paint(HWND window)
 {
     double elapsed_time = ( (double)clock() - (double)startT)/CLOCKS_PER_SEC;
@@ -112,8 +118,8 @@ void paint(HWND window)
     POINT p;
     GetCursorPos(&p);
 
-    int targetX = p.x; //catTargetOffsetX;
-    int targetY = p.y; //catTargetOffsetY;
+    int targetX = catTargetOffsetX;
+    int targetY = catTargetOffsetY;
 
     double xDiff = (targetX-catX-SPRITE_UNIT/2);
     double yDiff = (targetY-catY-SPRITE_UNIT/2);
@@ -141,6 +147,8 @@ void paint(HWND window)
 
     // printf("%f, %f, %f\n", targetDir, catDirection, rotDif);
 
+    if (c < 100)
+        changeCatTarget();
 
     if (c != 0)
     {
@@ -205,8 +213,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         else if (w_param == 2)
         {
             // int offset = 300;
-            catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
-            catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
+            // catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
+            // catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
         }
         // if (w_param == 1)
         //     printf("Timer2");
