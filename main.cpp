@@ -5,7 +5,7 @@
 
 #include <string.h>
 
-// #include <stdio.h>
+#include <stdio.h>
 #include <time.h>
 
 #define _USE_MATH_DEFINES
@@ -41,15 +41,15 @@ double catAnimF = 0;
 double catX = 500;
 double catY = 500;
 
+double catVX = 0;
+double catVY = 0;
+
 const int targetResetTime = 1000;
 double catTargetOffsetX = 0, catTargetOffsetY = 0;
 
-double catDirection = 0;
-double catVelocity = 0;
-
-const double catTurnSpeed = 2;
-const double catVelocityCap = 500;
-const double catAcceleration = 250;
+const double catVelocityCap = 1250;
+const double catAcceleration = 750;
+const double FRICTION = .98;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
@@ -103,10 +103,11 @@ double realisticQuadratic(double a, double b, double c)
     return r1;
 }
 
+const int BORDER_PADING = 200;
 void changeCatTarget()
 {
-    catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
-    catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
+    catTargetOffsetX = BORDER_PADING + (int) ( (double) rand() / RAND_MAX* ( client_width   - BORDER_PADING * 2 ) );
+    catTargetOffsetY = BORDER_PADING + (int) ( (double) rand() / RAND_MAX* ( client_height  - BORDER_PADING * 2 ) );
 }
 
 void paint(HWND window)
@@ -118,32 +119,18 @@ void paint(HWND window)
     POINT p;
     GetCursorPos(&p);
 
-    int targetX = catTargetOffsetX;
-    int targetY = catTargetOffsetY;
+    int targetX = p.x;//catTargetOffsetX;
+    int targetY = p.y;//catTargetOffsetY;
 
     double xDiff = (targetX-catX-SPRITE_UNIT/2);
     double yDiff = (targetY-catY-SPRITE_UNIT/2);
     double c = hypot(xDiff, yDiff);
 
     // Direction
-    double targetDir = fmod(M_PI*2 + atan2(-yDiff, xDiff), M_PI*2); // degrees
-    double rotDif = targetDir - catDirection;
-    if (rotDif != 0)
-    {
-        double rotSign = sign(rotDif);
-        if (abs(rotDif) > M_PI)
-            rotSign *= -1;
+    double velocityDir = fmod(M_PI*2 + atan2(-catVY, catVX), M_PI*2); // degrees
 
-        if (abs(catTurnSpeed*delta_time) > abs(rotDif))
-            catDirection += rotDif;
-        else 
-            catDirection += rotSign*catTurnSpeed*delta_time;
-        catDirection = fmod(M_PI*2 + catDirection, M_PI*2);
-
-
-        catAnimDir = (int)((catDirection+M_PI/8) / (M_PI/4))%8;
-        catAnimDir = (6 - catAnimDir + 8)%8;
-    }
+    catAnimDir = (int)((velocityDir+M_PI/8) / (M_PI/4))%8;
+    catAnimDir = (6 - catAnimDir + 8)%8;
 
     // printf("%f, %f, %f\n", targetDir, catDirection, rotDif);
 
@@ -152,31 +139,34 @@ void paint(HWND window)
 
     if (c != 0)
     {
-        double estimatedTime = realisticQuadratic(
-            -catAcceleration/2,
-            catVelocity,
-            -c
-        );
+        // double estimatedTime = realisticQuadratic(
+        //     -catAcceleration/2,
+        //     hypot(catVX, catVY),
+        //     -c
+        // );
 
-        if (estimatedTime < catVelocity/catAcceleration)
-            catVelocity =  max(catVelocity - catAcceleration * delta_time, 0.0);
-        else
-            catVelocity =  min(catVelocity + catAcceleration * delta_time, catVelocityCap);
+        // if (estimatedTime < hypot(catVX, catVY)/catAcceleration)
+        //     catVelocity =  max(catVelocity - catAcceleration * delta_time, 0.0);
+        // else
+        //     catVelocity =  min(catVelocity + catAcceleration * delta_time, catVelocityCap);
         // printf("%f\n", estimatedTime);
         // if (catVelocity)
 
 
-        double dif = min(delta_time*catVelocity, c);
-        if (xDiff != 0)
-            catX += cos(catDirection)*dif;
-        if (yDiff != 0)
-            catY += -sin(catDirection)*dif;
 
-        // printf("%d : %d\n", (int) dir, (int) catDir);
+        catVX += (xDiff/c)*delta_time*catAcceleration;
+        catVY += (yDiff/c)*delta_time*catAcceleration;
+
+        // Capping velocity
+        catVX = min(abs(catVX), catVelocityCap) * sign(catVX) * FRICTION;
+        catVY = min(abs(catVY), catVelocityCap) * sign(catVY) * FRICTION;
+
+        catX += catVX*delta_time;
+        catY += catVY*delta_time;
 
     }
 
-    catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
+    catAnimF = fmod(catAnimF+delta_time*hypot(catVX, catVY)/catVelocityCap*50, 8);
 
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8);
 }
@@ -294,6 +284,8 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     startT = clock();
     lastT = clock();
+
+    changeCatTarget();
     
     while (running)
     {
