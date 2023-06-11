@@ -44,12 +44,15 @@ double catY = 500;
 double catVX = 0;
 double catVY = 0;
 
+double catDirection = 0;
+
 const int targetResetTime = 1000;
 double catTargetOffsetX = 0, catTargetOffsetY = 0;
 
-const double catVelocityCap = 1250;
-const double catAcceleration = 750;
-const double FRICTION = .98;
+const double catTurnSpeed = 3;
+const double catVelocityCap = 1750;
+const double catAcceleration = 1750;
+const double FRICTION = .97;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
@@ -127,10 +130,24 @@ void paint(HWND window)
     double c = hypot(xDiff, yDiff);
 
     // Direction
-    double velocityDir = fmod(M_PI*2 + atan2(-catVY, catVX), M_PI*2); // degrees
+    double targetDir = fmod(M_PI*2 + atan2(-yDiff, xDiff), M_PI*2);
+    double rotDif = targetDir-catDirection;
+    if (rotDif != 0)
+    {
+        double rotSign = sign(rotDif);
+        if (abs(rotDif) > M_PI)
+            rotSign *= -1;
 
-    catAnimDir = (int)((velocityDir+M_PI/8) / (M_PI/4))%8;
-    catAnimDir = (6 - catAnimDir + 8)%8;
+        if (abs(catTurnSpeed*delta_time) > abs(rotDif))
+            catDirection += rotDif;
+        else 
+            catDirection += rotSign*catTurnSpeed*delta_time;
+        catDirection = fmod(M_PI*2 + catDirection, M_PI*2);
+
+
+        catAnimDir = (int)((catDirection+M_PI/8) / (M_PI/4))%8;
+        catAnimDir = (6 - catAnimDir + 8)%8;
+    }
 
     // printf("%f, %f, %f\n", targetDir, catDirection, rotDif);
 
@@ -152,10 +169,8 @@ void paint(HWND window)
         // printf("%f\n", estimatedTime);
         // if (catVelocity)
 
-
-
-        catVX += (xDiff/c)*delta_time*catAcceleration;
-        catVY += (yDiff/c)*delta_time*catAcceleration;
+        catVX += cos(catDirection)*delta_time*catAcceleration;
+        catVY -= sin(catDirection)*delta_time*catAcceleration;
 
         // Capping velocity
         catVX = min(abs(catVX), catVelocityCap) * sign(catVX) * FRICTION;
@@ -163,6 +178,14 @@ void paint(HWND window)
 
         catX += catVX*delta_time;
         catY += catVY*delta_time;
+
+        // double dif = min(delta_time*hypot(catVX, catVY), c);
+        // if (xDiff != 0)
+        //     catX += cos(catDirection)*dif;
+        // if (yDiff != 0)
+        //     catY += -sin(catDirection)*dif;
+
+        // printf("%d : %d\n", (int) dir, (int) catDir);
 
     }
 
