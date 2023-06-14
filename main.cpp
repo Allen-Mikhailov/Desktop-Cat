@@ -49,9 +49,9 @@ double catDirection = 0;
 const int targetResetTime = 1000;
 double catTargetOffsetX = 0, catTargetOffsetY = 0;
 
-const double catTurnSpeed = 3;
-const double catVelocityCap = 1750;
-const double catAcceleration = 1750;
+const double catTurnSpeed = 5;
+const double catVelocityCap = 1000;
+const double catAcceleration = 1750*2;
 const double FRICTION = .97;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
@@ -122,8 +122,16 @@ void paint(HWND window)
     POINT p;
     GetCursorPos(&p);
 
-    int targetX = p.x;//catTargetOffsetX;
-    int targetY = p.y;//catTargetOffsetY;
+    int targetX;
+    int targetY;
+
+    // Mouse Targeting
+    // targetX = p.x;
+    // targetY = p.y;
+
+    // Random Targeting
+    targetX = catTargetOffsetX;
+    targetY = catTargetOffsetY;
 
     double xDiff = (targetX-catX-SPRITE_UNIT/2);
     double yDiff = (targetY-catY-SPRITE_UNIT/2);
