@@ -41,8 +41,7 @@ double catAnimF = 0;
 double catX = 500;
 double catY = 500;
 
-double catVX = 0;
-double catVY = 0;
+double catVelocity = 0;
 
 double catDirection = 0;
 
@@ -50,8 +49,8 @@ const int targetResetTime = 1000;
 double catTargetOffsetX = 0, catTargetOffsetY = 0;
 
 const double catTurnSpeed = 5;
-const double catVelocityCap = 1000;
-const double catAcceleration = 1750*2;
+const double catVelocityCap = 500;
+const double catAcceleration = 1500;
 const double FRICTION = .97;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
@@ -126,12 +125,12 @@ void paint(HWND window)
     int targetY;
 
     // Mouse Targeting
-    // targetX = p.x;
-    // targetY = p.y;
+    targetX = p.x;
+    targetY = p.y;
 
     // Random Targeting
-    targetX = catTargetOffsetX;
-    targetY = catTargetOffsetY;
+    // targetX = catTargetOffsetX;
+    // targetY = catTargetOffsetY;
 
     double xDiff = (targetX-catX-SPRITE_UNIT/2);
     double yDiff = (targetY-catY-SPRITE_UNIT/2);
@@ -164,40 +163,30 @@ void paint(HWND window)
 
     if (c != 0)
     {
-        // double estimatedTime = realisticQuadratic(
-        //     -catAcceleration/2,
-        //     hypot(catVX, catVY),
-        //     -c
-        // );
+        double estimatedTime = realisticQuadratic(
+            -catAcceleration/2,
+            catVelocity,
+            -c
+        );
 
-        // if (estimatedTime < hypot(catVX, catVY)/catAcceleration)
-        //     catVelocity =  max(catVelocity - catAcceleration * delta_time, 0.0);
-        // else
-        //     catVelocity =  min(catVelocity + catAcceleration * delta_time, catVelocityCap);
-        // printf("%f\n", estimatedTime);
+        if (estimatedTime < catVelocity/catAcceleration)
+            catVelocity =  max(catVelocity - catAcceleration * delta_time, 0.0);
+        else
+            catVelocity =  min(catVelocity + catAcceleration * delta_time, catVelocityCap);
+        printf("%f\n", estimatedTime);
         // if (catVelocity)
 
-        catVX += cos(catDirection)*delta_time*catAcceleration;
-        catVY -= sin(catDirection)*delta_time*catAcceleration;
-
-        // Capping velocity
-        catVX = min(abs(catVX), catVelocityCap) * sign(catVX) * FRICTION;
-        catVY = min(abs(catVY), catVelocityCap) * sign(catVY) * FRICTION;
-
-        catX += catVX*delta_time;
-        catY += catVY*delta_time;
-
-        // double dif = min(delta_time*hypot(catVX, catVY), c);
-        // if (xDiff != 0)
-        //     catX += cos(catDirection)*dif;
-        // if (yDiff != 0)
-        //     catY += -sin(catDirection)*dif;
+        double dif = min(delta_time*catVelocity, c);
+        if (xDiff != 0)
+            catX += cos(catDirection)*dif;
+        if (yDiff != 0)
+            catY += -sin(catDirection)*dif;
 
         // printf("%d : %d\n", (int) dir, (int) catDir);
 
     }
 
-    catAnimF = fmod(catAnimF+delta_time*hypot(catVX, catVY)/catVelocityCap*50, 8);
+    catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
 
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8);
 }
