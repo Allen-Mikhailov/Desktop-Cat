@@ -43,6 +43,13 @@ void paint(HWND window)
     // DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, hdcMem);
 }
 
+void error_check(const char* string)
+{
+    DWORD lastError = GetLastError();
+    if (lastError != 0)
+        printf("%s failed with error code %lu\n", string, lastError);
+}
+
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 {
     LRESULT result;
@@ -52,7 +59,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     switch (message)
     {
     case WM_CREATE:
-        init(window, hdc);
+        init(window, GetDC(window));
         
         break;
     case WM_CLOSE:
@@ -110,6 +117,8 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     RegisterClassA(&window_class);
 
+    error_check("register");
+
     HMONITOR hmon = MonitorFromWindow(NULL,
                                     MONITOR_DEFAULTTONEAREST);
     MONITORINFO mi = { sizeof(mi) };
@@ -132,7 +141,12 @@ int APIENTRY WinMain(HINSTANCE instance,
                             0,
                             instance,
                             0);
+
+    error_check("register");
+
     hdc = GetDC(window);
+
+    error_check("hdc");
 
     // Transparent
     SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);

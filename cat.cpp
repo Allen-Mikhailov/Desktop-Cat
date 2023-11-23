@@ -13,9 +13,8 @@
 #include <math.h>
 #include "window_setup.cpp"
 
-HDC hdcMem;
+HDC catSheetHDC;
 BITMAP bitmap;
-HGDIOBJ oldBitmap;
 HBITMAP catSpriteMap;
 
 // Cat Variables
@@ -55,11 +54,19 @@ void changeCatTarget(int client_width, int client_height)
     catTargetOffsetY = BORDER_PADING + (int) ( (double) rand() / RAND_MAX* ( client_height  - BORDER_PADING * 2 ) );
 }
 
+HDC testHDC;
+HBITMAP testMap;
+
+HPEN hPen = CreatePen(PS_NULL, 0, RGB(255, 0, 0));
+
+COLORREF RED = 0x000000FF;
+HBRUSH redBrush = (HBRUSH) CreateSolidBrush(RED);
+
 void init(HWND window, HDC hdc)
 {
     SetTimer(window, 1, 1, NULL); 
     SetTimer(window, 2, targetResetTime, NULL); 
-    hdcMem = CreateCompatibleDC(hdc);
+    catSheetHDC = CreateCompatibleDC(hdc);
 
     // 1x 1024 544
     // 2x 2048, 1088
@@ -67,18 +74,65 @@ void init(HWND window, HDC hdc)
     catSpriteMap = (HBITMAP) LoadImageA(hinstance, "./Cats.bmp", IMAGE_BITMAP, 
         1024*SPRITE_SCALE, 544*SPRITE_SCALE, LR_LOADFROMFILE);
 
-    oldBitmap = SelectObject(hdcMem, catSpriteMap);
+
+    SelectObject(catSheetHDC, catSpriteMap);
     GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
 
+    // // Get the number of color planes
+    //     int nPlanes = GetDeviceCaps(catSheetHDC, PLANES);
+
+    //     // Display the number of color planes
+    //     printf("Number of color planes: %d\n", nPlanes);
+
+    // // Get the number of bits per pixel
+    // int nBitCount = GetDeviceCaps(catSheetHDC, BITSPIXEL);
+
+    // // Display the number of bits per pixel
+    //     printf("Number of bits per pixel: %d\n", nBitCount);
+
+    
+
+
     changeCatTarget(client_width, client_height);
+
+    testHDC = CreateCompatibleDC(catSheetHDC);
+    const void* lpBits = malloc((((200 * 1 * 32 + 15) >> 4) << 1) * 200);
+    testMap = CreateBitmap(200, 200, 1, 32, lpBits);
+    SelectObject(testHDC, testMap);
+    // SelectObject(testHDC, redBrush);
+
+    // SetBrushOrgEx(testHDC, 0, 0, NULL); // Reset brush origin
+    // SetBrushOrgEx(testHDC, 0, 0, NULL); // Set brush origin to (0, 0)
+    // SetBkMode(testHDC, OPAQUE);
+
+    HBITMAP drawMap = testMap;
+    HDC drawHDC = testHDC;
+
+    // Drawing 1
+    SelectObject(drawHDC, hPen);
+    SelectObject(drawHDC, redBrush);
+    Rectangle(drawHDC, 0, 0, 201, 201);
+
+    // Drawing 2
+    // RECT rect = {0, 0, 200, 200};
+    // printf("stuff %d\n", FillRect(testHDC, &rect, redBrush));
+
+    SelectObject(testHDC, testMap);
+
+    PBITMAPINFO t = CreateBitmapInfoStruct(window, drawMap);
+    LPTSTR str = (LPTSTR)"test.bmp";
+    CreateBMPFile(window, str, t, drawMap, drawHDC);
+
+    
+    
 }
 
-void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC hdcMem)
+void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHDC)
 {
     // Drawing the cat and stuff
     int mapX = anim*4 + frame%4;
     int mapY = dir*2 + frame/4 + 1;
-    BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, hdcMem, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
+    BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 
     // Clearing Area around the cat
 
@@ -97,6 +151,13 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC hdcMem)
 
     rect = {(int) catX+SPRITE_UNIT, (int)catY, (int)catX+SPRITE_UNIT*2, (int)catY+SPRITE_UNIT};
     FillRect(hdc, &rect, transparentBrush);
+
+    BitBlt(hdc, 0, 0, 5, 5, testHDC, 0, 0, SRCCOPY);
+}
+
+int getCatAnimDir(double x, double)
+{
+
 }
 
 void update(double delta_time)
@@ -169,5 +230,5 @@ void update(double delta_time)
 
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
 
-    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, hdcMem);
+    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
 }
