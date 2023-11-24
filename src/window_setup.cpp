@@ -61,11 +61,27 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     {
     case WM_CREATE:
         init(window, GetDC(window));
-        
+        result = DefWindowProc(window, message, w_param, l_param);
         break;
-    case WM_CLOSE:
+    case WM_SYSCOMMAND:
+        if (w_param == SC_CLOSE)
+        {
+            // Handle close button click in the taskbar
+            printf("Task quit\n");
+            PostQuitMessage(0); // Terminate the message loop
+            running = 0;
+        }
+        else
+        {
+            result = DefWindowProc(window, message, w_param, l_param);
+        }
+        break;
+    case WM_QUIT:
+        // Add your cleanup code or confirmation dialog here if needed
         running = 0;
+        DestroyWindow(window);
         break;
+
 
     case WM_TIMER:
         if (w_param == 1)
@@ -164,6 +180,7 @@ int APIENTRY WinMain(HINSTANCE instance,
         MSG message;
         while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
         {
+
             // printf("Message");
             TranslateMessage(&message);
             DispatchMessage(&message);
