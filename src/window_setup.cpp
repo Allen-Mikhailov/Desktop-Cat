@@ -29,6 +29,8 @@ HINSTANCE hinstance;
 int client_width;
 int client_height;
 
+int frames = 0;
+
 void update(double delta_time);
 void init(HWND window, HDC hdc);
 
@@ -39,8 +41,7 @@ void paint(HWND window)
     lastT = clock();
 
     update(delta_time);
-    // CatUpdate(delta_time);
-    // DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, hdcMem);
+    frames++;
 }
 
 void error_check(const char* string)

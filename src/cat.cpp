@@ -57,7 +57,7 @@ void changeCatTarget(int client_width, int client_height)
 HDC testHDC;
 HBITMAP testMap;
 
-HPEN hPen = CreatePen(PS_NULL, 0, RGB(255, 0, 0));
+HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
 
 COLORREF RED = 0x000000FF;
 HBRUSH redBrush = (HBRUSH) CreateSolidBrush(RED);
@@ -66,7 +66,14 @@ void init(HWND window, HDC hdc)
 {
     SetTimer(window, 1, 1, NULL); 
     SetTimer(window, 2, targetResetTime, NULL); 
+
+    SelectObject(hdc, hPen);
+
     catSheetHDC = CreateCompatibleDC(hdc);
+
+    char filePath[MAX_PATH]; 
+    DWORD filepath = GetModuleFileNameA(NULL, filePath, MAX_PATH);
+    printf("Current Path is %s", filePath);
 
     // 1x 1024 544
     // 2x 2048, 1088
@@ -122,34 +129,33 @@ void init(HWND window, HDC hdc)
     PBITMAPINFO t = CreateBitmapInfoStruct(window, drawMap);
     LPTSTR str = (LPTSTR)"test.bmp";
     CreateBMPFile(window, str, t, drawMap, drawHDC);
-
-    
-    
 }
 
 void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHDC)
 {
-    // Drawing the cat and stuff
+    // Drawing the cat
     int mapX = anim*4 + frame%4;
     int mapY = dir*2 + frame/4 + 1;
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 
     // Clearing Area around the cat
+    SelectObject(hdc, hPen);
 
     // Top
     RECT rect;
-    rect = {(int) catX-SPRITE_UNIT, (int)catY-SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY};
+    rect = {x-SPRITE_UNIT, y-SPRITE_UNIT, x+SPRITE_UNIT*2, y};
     FillRect(hdc, &rect, transparentBrush);
+    // Rectangle(hdc, (int) catX-SPRITE_UNIT, (int)catY-SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY);
 
     // Bottom
-    rect = {(int)catX-SPRITE_UNIT, (int)catY+SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY+SPRITE_UNIT*2};
+    rect = {x-SPRITE_UNIT, y+SPRITE_UNIT, x+SPRITE_UNIT*2, y+SPRITE_UNIT*2};
     FillRect(hdc, &rect, transparentBrush);
 
     // Left
-    rect = {(int) catX-SPRITE_UNIT, (int)catY, (int)catX, (int)catY+SPRITE_UNIT};
+    rect = {x-SPRITE_UNIT, y, x, y+SPRITE_UNIT};
     FillRect(hdc, &rect, transparentBrush);
 
-    rect = {(int) catX+SPRITE_UNIT, (int)catY, (int)catX+SPRITE_UNIT*2, (int)catY+SPRITE_UNIT};
+    rect = {x+SPRITE_UNIT, y, x+SPRITE_UNIT*2, y+SPRITE_UNIT};
     FillRect(hdc, &rect, transparentBrush);
 
     BitBlt(hdc, 0, 0, 5, 5, testHDC, 0, 0, SRCCOPY);
@@ -157,7 +163,7 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
 
 int getCatAnimDir(double x, double)
 {
-
+    return 0;
 }
 
 void update(double delta_time)
@@ -229,6 +235,13 @@ void update(double delta_time)
     }
 
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
+
+    // To get rid of the black lines
+    if (frames == 0)
+    {
+        RECT rect = {0, 0, client_width, client_height};
+        FillRect(hdc, &rect, transparentBrush);
+    }
 
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
 }
