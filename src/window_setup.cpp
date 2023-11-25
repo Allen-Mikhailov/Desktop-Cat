@@ -11,6 +11,7 @@
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <math.h>
+#include "config.cpp"
 
 #include "extra_math.cpp"
 
@@ -51,6 +52,22 @@ void error_check(const char* string)
         printf("%s failed with error code %lu\n", string, lastError);
 }
 
+void close_window()
+{
+    running = 0;
+    PostQuitMessage(0);
+}
+
+RECT getScreenRect()
+{
+    HMONITOR hmon = MonitorFromWindow(NULL,
+                                    MONITOR_DEFAULTTONEAREST);
+    MONITORINFO mi = { sizeof(mi) };
+    GetMonitorInfo(hmon, &mi);
+
+    return mi.rcMonitor;
+}
+
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 {
     LRESULT result;
@@ -61,6 +78,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     {
     case WM_CREATE:
         init(window, GetDC(window));
+        error_check("init error");
         result = DefWindowProc(window, message, w_param, l_param);
         break;
     case WM_SYSCOMMAND:
@@ -68,8 +86,7 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         {
             // Handle close button click in the taskbar
             printf("Task quit\n");
-            PostQuitMessage(0); // Terminate the message loop
-            running = 0;
+            close_window();
         }
         else
         {
@@ -78,7 +95,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         break;
     case WM_QUIT:
         // Add your cleanup code or confirmation dialog here if needed
-        running = 0;
         DestroyWindow(window);
         break;
 
@@ -92,8 +108,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
             // catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
             // catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
         }
-        // if (w_param == 1)
-        //     printf("Timer2");
         break;
     case WM_KEYDOWN:
         
@@ -113,6 +127,8 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     return result;
 }
 
+
+
 int APIENTRY WinMain(HINSTANCE instance,
                      HINSTANCE prev_instance,
                      LPSTR cmd_line,
@@ -127,8 +143,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     window_class.style = CS_HREDRAW | CS_VREDRAW;
     window_class.lpfnWndProc = WindowProc;
     window_class.hInstance = instance;
-    window_class.lpszClassName = "Sample Window Class";
-    // window_class.hbrBackground	= NULL;
+    window_class.lpszClassName = className;
 
     hinstance = instance;
 
@@ -136,22 +151,17 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     error_check("register");
 
-    HMONITOR hmon = MonitorFromWindow(NULL,
-                                    MONITOR_DEFAULTTONEAREST);
-    MONITORINFO mi = { sizeof(mi) };
-    GetMonitorInfo(hmon, &mi);
-
-    client_width = mi.rcMonitor.right - mi.rcMonitor.left;
-    client_height = mi.rcMonitor.bottom - mi.rcMonitor.top;
+    RECT screen_rect = getScreenRect();
+    client_width = getRectWidth(screen_rect);
+    client_height = getRectHeight(screen_rect);
 
     int flags = WS_OVERLAPPED | WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP | WS_DISABLED | WS_EX_TOOLWINDOW;
-
     window = CreateWindowExA(0,
-                            "Sample Window Class",
-                            "Game",
+                            className,
+                            windowName,
                             flags,
-                            mi.rcMonitor.left,
-                            mi.rcMonitor.top,
+                            screen_rect.left,
+                            screen_rect.top,
                             client_width,
                             client_height,
                             0,
@@ -159,7 +169,7 @@ int APIENTRY WinMain(HINSTANCE instance,
                             instance,
                             0);
 
-    error_check("register");
+    error_check("window create");
 
     hdc = GetDC(window);
 
@@ -170,10 +180,11 @@ int APIENTRY WinMain(HINSTANCE instance,
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
+    error_check("transparecnt");
+
+    // Starting dt clocks
     startT = clock();
     lastT = clock();
-
-    //
     
     while (running)
     {

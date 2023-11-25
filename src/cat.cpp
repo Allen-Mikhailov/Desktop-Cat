@@ -62,6 +62,18 @@ HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
 COLORREF RED = 0x000000FF;
 HBRUSH redBrush = (HBRUSH) CreateSolidBrush(RED);
 
+HBITMAP createCompatibleBitmap(HDC hdc, int width, int height)
+{
+    // Get the number of color planes
+    int nPlanes = GetDeviceCaps(hdc, PLANES);
+
+    // Get the number of bits per pixel
+    int nBitCount = GetDeviceCaps(hdc, BITSPIXEL);
+
+    const void* lpBits = malloc((((width * nPlanes * nBitCount + 15) >> 4) << 1) * height);
+    return CreateBitmap(width, height, nPlanes, nBitCount, lpBits);
+}
+
 void init(HWND window, HDC hdc)
 {
     SetTimer(window, 1, 1, NULL); 
@@ -85,26 +97,13 @@ void init(HWND window, HDC hdc)
     SelectObject(catSheetHDC, catSpriteMap);
     GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
 
-    // // Get the number of color planes
-    //     int nPlanes = GetDeviceCaps(catSheetHDC, PLANES);
-
-    //     // Display the number of color planes
-    //     printf("Number of color planes: %d\n", nPlanes);
-
-    // // Get the number of bits per pixel
-    // int nBitCount = GetDeviceCaps(catSheetHDC, BITSPIXEL);
-
-    // // Display the number of bits per pixel
-    //     printf("Number of bits per pixel: %d\n", nBitCount);
-
     
 
 
     changeCatTarget(client_width, client_height);
 
     testHDC = CreateCompatibleDC(catSheetHDC);
-    const void* lpBits = malloc((((200 * 1 * 32 + 15) >> 4) << 1) * 200);
-    testMap = CreateBitmap(200, 200, 1, 32, lpBits);
+    testMap = createCompatibleBitmap(catSheetHDC, 200, 200);
     SelectObject(testHDC, testMap);
     // SelectObject(testHDC, redBrush);
 
@@ -138,8 +137,12 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
     int mapY = dir*2 + frame/4 + 1;
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 
+    error_check("Cat draw");
+
     // Clearing Area around the cat
     SelectObject(hdc, hPen);
+
+    error_check("pen select");
 
     // Top
     RECT rect;

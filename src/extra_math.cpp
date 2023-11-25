@@ -27,6 +27,16 @@ int intfromHex(const char* str)
     return (int)strtol(str, NULL, 16);
 }
 
+int getRectWidth(RECT rect)
+{
+    return rect.right-rect.left;
+}
+
+int getRectHeight(RECT rect)
+{
+    return rect.bottom-rect.top;
+}
+
 PBITMAPINFO CreateBitmapInfoStruct(HWND hwnd, HBITMAP hBmp)
 { 
     BITMAP bmp; 

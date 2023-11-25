@@ -19,4 +19,5 @@ echo Running................................................
 echo.
 
 cd build
+del test.bmp
 "Desktop Cat.exe"
