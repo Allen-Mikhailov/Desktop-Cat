@@ -36,6 +36,7 @@ double catTargetOffsetX = 0, catTargetOffsetY = 0;
 const double catTurnSpeed = 5;
 const double catVelocityCap = 500;
 const double catAcceleration = 1500;
+const double catAnimationSpeed = 50;
 const double FRICTION = .97;
 
 char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
@@ -54,8 +55,8 @@ void changeCatTarget(int client_width, int client_height)
     catTargetOffsetY = BORDER_PADING + (int) ( (double) rand() / RAND_MAX* ( client_height  - BORDER_PADING * 2 ) );
 }
 
-HDC testHDC;
-HBITMAP testMap;
+HDC bufferHDC;
+HBITMAP bufferMap;
 
 HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
 
@@ -74,18 +75,31 @@ HBITMAP createCompatibleBitmap(HDC hdc, int width, int height)
     return CreateBitmap(width, height, nPlanes, nBitCount, lpBits);
 }
 
+void reset_drawbuffer()
+{
+    // Creating the buffer
+    bufferHDC = CreateCompatibleDC(catSheetHDC);
+    bufferMap = createCompatibleBitmap(catSheetHDC, client_width, client_height);
+    SelectObject(bufferHDC, bufferMap);
+
+    // Filling with white
+    SelectObject(bufferHDC, hPen);
+    SelectObject(bufferHDC, transparentBrush);
+    Rectangle(bufferHDC, 0, 0, client_width, client_height);
+
+}
+
 void init(HWND window, HDC hdc)
 {
-    SetTimer(window, 1, 1, NULL); 
-    SetTimer(window, 2, targetResetTime, NULL); 
+    // SetTimer(window, 2, targetResetTime, NULL); 
 
     SelectObject(hdc, hPen);
 
     catSheetHDC = CreateCompatibleDC(hdc);
 
-    char filePath[MAX_PATH]; 
-    DWORD filepath = GetModuleFileNameA(NULL, filePath, MAX_PATH);
-    printf("Current Path is %s", filePath);
+    // char filePath[MAX_PATH]; 
+    // DWORD filepath = GetModuleFileNameA(NULL, filePath, MAX_PATH);
+    // printf("Current Path is %s", filePath);
 
     // 1x 1024 544
     // 2x 2048, 1088
@@ -98,36 +112,31 @@ void init(HWND window, HDC hdc)
     GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
 
     
-
+    reset_drawbuffer();
 
     changeCatTarget(client_width, client_height);
 
-    testHDC = CreateCompatibleDC(catSheetHDC);
-    testMap = createCompatibleBitmap(catSheetHDC, 200, 200);
-    SelectObject(testHDC, testMap);
+    
     // SelectObject(testHDC, redBrush);
 
     // SetBrushOrgEx(testHDC, 0, 0, NULL); // Reset brush origin
     // SetBrushOrgEx(testHDC, 0, 0, NULL); // Set brush origin to (0, 0)
     // SetBkMode(testHDC, OPAQUE);
 
-    HBITMAP drawMap = testMap;
-    HDC drawHDC = testHDC;
+    // HBITMAP drawMap = bufferMap;
+    // HDC drawHDC = bufferHDC;
 
-    // Drawing 1
-    SelectObject(drawHDC, hPen);
-    SelectObject(drawHDC, redBrush);
-    Rectangle(drawHDC, 0, 0, 201, 201);
+    // // Drawing 1
+    // SelectObject(drawHDC, redBrush);
+    // Rectangle(drawHDC, 0, 0, 201, 201);
 
-    // Drawing 2
-    // RECT rect = {0, 0, 200, 200};
-    // printf("stuff %d\n", FillRect(testHDC, &rect, redBrush));
+    // // Drawing 2
+    // // RECT rect = {0, 0, 200, 200};
+    // // printf("stuff %d\n", FillRect(testHDC, &rect, redBrush));
 
-    SelectObject(testHDC, testMap);
-
-    PBITMAPINFO t = CreateBitmapInfoStruct(window, drawMap);
-    LPTSTR str = (LPTSTR)"test.bmp";
-    CreateBMPFile(window, str, t, drawMap, drawHDC);
+    // PBITMAPINFO t = CreateBitmapInfoStruct(window, drawMap);
+    // LPTSTR str = (LPTSTR)"test.bmp";
+    // CreateBMPFile(window, str, t, drawMap, drawHDC);
 }
 
 void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHDC)
@@ -137,39 +146,28 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
     int mapY = dir*2 + frame/4 + 1;
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 
-    error_check("Cat draw");
-
     // Clearing Area around the cat
-    SelectObject(hdc, hPen);
-
-    error_check("pen select");
+    // SelectObject(hdc, hPen);
 
     // Top
-    RECT rect;
-    rect = {x-SPRITE_UNIT, y-SPRITE_UNIT, x+SPRITE_UNIT*2, y};
-    FillRect(hdc, &rect, transparentBrush);
-    // Rectangle(hdc, (int) catX-SPRITE_UNIT, (int)catY-SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY);
+    // RECT rect;
+    // rect = {x-SPRITE_UNIT, y-SPRITE_UNIT, x+SPRITE_UNIT*2, y};
+    // FillRect(hdc, &rect, transparentBrush);
+    // // Rectangle(hdc, (int) catX-SPRITE_UNIT, (int)catY-SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY);
 
-    // Bottom
-    rect = {x-SPRITE_UNIT, y+SPRITE_UNIT, x+SPRITE_UNIT*2, y+SPRITE_UNIT*2};
-    FillRect(hdc, &rect, transparentBrush);
+    // // Bottom
+    // rect = {x-SPRITE_UNIT, y+SPRITE_UNIT, x+SPRITE_UNIT*2, y+SPRITE_UNIT*2};
+    // FillRect(hdc, &rect, transparentBrush);
 
-    // Left
-    rect = {x-SPRITE_UNIT, y, x, y+SPRITE_UNIT};
-    FillRect(hdc, &rect, transparentBrush);
+    // // Left
+    // rect = {x-SPRITE_UNIT, y, x, y+SPRITE_UNIT};
+    // FillRect(hdc, &rect, transparentBrush);
 
-    rect = {x+SPRITE_UNIT, y, x+SPRITE_UNIT*2, y+SPRITE_UNIT};
-    FillRect(hdc, &rect, transparentBrush);
-
-    BitBlt(hdc, 0, 0, 5, 5, testHDC, 0, 0, SRCCOPY);
+    // rect = {x+SPRITE_UNIT, y, x+SPRITE_UNIT*2, y+SPRITE_UNIT};
+    // FillRect(hdc, &rect, transparentBrush);
 }
 
-int getCatAnimDir(double x, double)
-{
-    return 0;
-}
-
-void update(double delta_time)
+void update_running_cat_(double delta_time)
 {
     POINT p;
     GetCursorPos(&p);
@@ -209,11 +207,6 @@ void update(double delta_time)
         catAnimDir = (6 - catAnimDir + 8)%8;
     }
 
-    // printf("%f, %f, %f\n", targetDir, catDirection, rotDif);
-
-    if (c < 100)
-        changeCatTarget(client_width, client_height);
-
     if (c != 0)
     {
         double estimatedTime = realisticQuadratic(
@@ -237,14 +230,38 @@ void update(double delta_time)
 
     }
 
-    catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*50, 8);
+    catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
+}
 
+RECT catRect;
+
+void update(double delta_time)
+{
     // To get rid of the black lines
     if (frames == 0)
     {
         RECT rect = {0, 0, client_width, client_height};
         FillRect(hdc, &rect, transparentBrush);
+        printf("Initial Fill\n");
     }
 
+    // LARGE_INTEGER frequency, start, end;
+    // QueryPerformanceFrequency(&frequency);
+    // QueryPerformanceCounter(&start);
+
+    // Clearing the original Cat
+    // catRect = {(int) catX, (int) catY, (int) catX+SPRITE_UNIT, (int) catY+SPRITE_UNIT};
+    // FillRect(bufferHDC, &catRect, transparentBrush);
+
+    // printf("FPS: %f\n", 1/delta_time);
+
+    update_running_cat_(delta_time);
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
+
+    // BitBlt(hdc, 0, 0, client_width, client_height, bufferHDC, 0, 0, SRCCOPY);
+}
+
+void destroy()
+{
+    
 }

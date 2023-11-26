@@ -25,6 +25,7 @@ HBRUSH transparentBrush = (HBRUSH) CreateSolidBrush(TRANSPARENT_COLOR);
 
 HDC hdc;
 HINSTANCE hinstance;
+HDC paintHDC;
 
 // Window vars
 int client_width;
@@ -34,14 +35,22 @@ int frames = 0;
 
 void update(double delta_time);
 void init(HWND window, HDC hdc);
+void destroy();
 
-void paint(HWND window)
+void paint(HWND window, HDC paintHDC)
 {
     double elapsed_time = ( (double)clock() - (double)startT)/CLOCKS_PER_SEC;
     double delta_time = ( (double)clock() - (double)lastT)/CLOCKS_PER_SEC;
     lastT = clock();
 
+    // PAINTSTRUCT ps;
+    // ps.rcPaint = {0, 0, client_width, client_height};
+    // paintHDC = BeginPaint(window, &ps);
+    
+
     update(delta_time);
+
+    // EndPaint(window, &ps);
     frames++;
 }
 
@@ -73,14 +82,10 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     LRESULT result;
 
     static PAINTSTRUCT ps;
+    // printf("Message%d\n", message);
 
     switch (message)
     {
-    case WM_CREATE:
-        init(window, GetDC(window));
-        error_check("init error");
-        result = DefWindowProc(window, message, w_param, l_param);
-        break;
     case WM_SYSCOMMAND:
         if (w_param == SC_CLOSE)
         {
@@ -94,27 +99,17 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
         }
         break;
     case WM_QUIT:
-        // Add your cleanup code or confirmation dialog here if needed
         DestroyWindow(window);
-        break;
+        return 0;
 
 
     case WM_TIMER:
         if (w_param == 1)
-            SendMessage(window, WM_PAINT, NULL, NULL);
-        else if (w_param == 2)
-        {
-            // int offset = 300;
-            // catTargetOffsetX = (int) ((double)rand()/RAND_MAX*client_width);
-            // catTargetOffsetY = (int) ((double)rand()/RAND_MAX*client_height);
-        }
-        break;
-    case WM_KEYDOWN:
-        
-        break;
+            InvalidateRect(window, nullptr, TRUE);
+        return 0;
     case WM_PAINT:
-        paint(window);
-        return DefWindowProc(window, message, w_param, l_param);
+        paint(window, hdc);
+        return 0;
 
     default:
         result = DefWindowProc(window,
@@ -126,8 +121,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
 
     return result;
 }
-
-
 
 int APIENTRY WinMain(HINSTANCE instance,
                      HINSTANCE prev_instance,
@@ -186,21 +179,29 @@ int APIENTRY WinMain(HINSTANCE instance,
     startT = clock();
     lastT = clock();
     
-    while (running)
-    {
-        MSG message;
-        while (PeekMessage(&message, window, 0, 0, PM_REMOVE))
-        {
+    SetTimer(window, 1, 1000/targetFPS, NULL); 
 
-            // printf("Message");
-            TranslateMessage(&message);
-            DispatchMessage(&message);
+    init(window, hdc);
+    error_check("init error");
+    
+    MSG message;
+    while (GetMessage(&message, window, 0, 0))
+    {
+        TranslateMessage(&message);
+        DispatchMessage(&message);
+
+        // // printf("message %d\n", message.message);
+        if (message.message == WM_TIMER)
+        {
+            // printf("Sleep");
             Sleep(1);
         }
     }
 
     ReleaseDC(window, hdc);
     DestroyWindow(window);
+
+    KillTimer(window, 1);
 
     return 0;
 }
