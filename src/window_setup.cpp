@@ -101,16 +101,18 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     case WM_QUIT:
         DestroyWindow(window);
         return 0;
+    // case WM_PAINT:
+    //     printf("WTF");
+    //     break;
 
-
-    case WM_TIMER:
-        if (w_param == 1)
-            InvalidateRect(window, nullptr, TRUE);
-        return 0;
+    // case WM_TIMER:
+    //     if (w_param == 1)
+    //         paint(window, hdc);
+    //         // SendMessage(window, WM_PAINT, NULL, NULL);
+    //     return 0;
     case WM_PAINT:
         paint(window, hdc);
         return 0;
-
     default:
         result = DefWindowProc(window,
                                message,
@@ -148,8 +150,9 @@ int APIENTRY WinMain(HINSTANCE instance,
     client_width = getRectWidth(screen_rect);
     client_height = getRectHeight(screen_rect);
 
+    DWORD styles = WS_EX_LAYERED | WS_EX_TRANSPARENT;
     int flags = WS_OVERLAPPED | WS_EX_TOPMOST | WS_VISIBLE | WS_POPUP | WS_DISABLED | WS_EX_TOOLWINDOW;
-    window = CreateWindowExA(0,
+    window = CreateWindowExA(styles,
                             className,
                             windowName,
                             flags,
@@ -169,7 +172,7 @@ int APIENTRY WinMain(HINSTANCE instance,
     error_check("hdc");
 
     // Transparent
-    SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
+    // SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
 
@@ -179,7 +182,9 @@ int APIENTRY WinMain(HINSTANCE instance,
     startT = clock();
     lastT = clock();
     
-    SetTimer(window, 1, 1000/targetFPS, NULL); 
+    // SetTimer(window, 1, 1, NULL); 
+
+    error_check("clock/timer error");
 
     init(window, hdc);
     error_check("init error");
@@ -191,10 +196,9 @@ int APIENTRY WinMain(HINSTANCE instance,
         DispatchMessage(&message);
 
         // // printf("message %d\n", message.message);
-        if (message.message == WM_TIMER)
+        if (message.message == WM_PAINT)
         {
-            // printf("Sleep");
-            Sleep(1);
+            Sleep(5);
         }
     }
 

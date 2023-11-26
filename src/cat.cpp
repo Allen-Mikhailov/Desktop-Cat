@@ -250,15 +250,15 @@ void update(double delta_time)
     // QueryPerformanceCounter(&start);
 
     // Clearing the original Cat
-    // catRect = {(int) catX, (int) catY, (int) catX+SPRITE_UNIT, (int) catY+SPRITE_UNIT};
-    // FillRect(bufferHDC, &catRect, transparentBrush);
+    catRect = {(int) catX, (int) catY, (int) catX+SPRITE_UNIT, (int) catY+SPRITE_UNIT};
+    FillRect(bufferHDC, &catRect, transparentBrush);
 
     // printf("FPS: %f\n", 1/delta_time);
 
     update_running_cat_(delta_time);
-    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
+    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, bufferHDC, catSheetHDC);
 
-    // BitBlt(hdc, 0, 0, client_width, client_height, bufferHDC, 0, 0, SRCCOPY);
+    BitBlt(hdc, 0, 0, client_width, client_height, bufferHDC, 0, 0, SRCCOPY);
 }
 
 void destroy()

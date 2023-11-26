@@ -13,7 +13,7 @@ del  /Q .\build\*
 echo Building................................................
 echo.
 
-g++ "src\test2.cpp" -lgdi32 -lstdc++ -ldwmapi -o"build\Desktop Cat.exe"
+g++ "src\cat.cpp" -lgdi32 -lstdc++ -ldwmapi -o"build\Desktop Cat.exe"
 
 @REM Adding the rest of the files
 copy src\Cats.bmp build
@@ -31,3 +31,5 @@ echo Finished Running................................................
 echo.
 
 cd ..
+
+set /p id=Press "Enter" to exit
