@@ -15,22 +15,17 @@
 #include "vector2.cpp"
 #include "sprite_functions.cpp"
 #include "file_extras.cpp"
+#include "cat_state.cpp"
 
 HDC catSheetHDC;
 BITMAP bitmap;
 HBITMAP catSpriteMap;
 
-// Cat Animations
-#define CA_SITDOWN 0
-#define CA_LOOKAROUND 1
-#define CA_LAYDOWN 2
-#define CA_WALK 3
-#define CA_RUN1 4
-#define CA_RUN2 5
-
 // Cat Variables
 int catAnimDir = 6;
-int catAnim = 5;
+int catAnim = CA_RUN2;
+
+int catState = 0;
 
 double catAnimF = 0;
 
