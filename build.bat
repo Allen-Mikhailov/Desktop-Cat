@@ -18,18 +18,14 @@ g++ "src\cat.cpp" -lgdi32 -lstdc++ -ldwmapi -o"build\Desktop Cat.exe"
 @REM Adding the rest of the files
 copy src\Cats.bmp build
 
-cd build
-
 echo.
 echo Running................................................
 echo.
 
-"Desktop Cat.exe"
+"build\Desktop Cat.exe"
 
 echo.
 echo Finished Running................................................
 echo.
-
-cd ..
 
 set /p id=Press "Enter" to exit

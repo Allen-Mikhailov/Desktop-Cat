@@ -35,7 +35,7 @@ int frames = 0;
 
 void update(double delta_time);
 void init(HWND window, HDC hdc);
-void destroy();
+void destroy(HWND window);
 
 void paint(HWND window, HDC paintHDC)
 {
@@ -43,14 +43,7 @@ void paint(HWND window, HDC paintHDC)
     double delta_time = ( (double)clock() - (double)lastT)/CLOCKS_PER_SEC;
     lastT = clock();
 
-    // PAINTSTRUCT ps;
-    // ps.rcPaint = {0, 0, client_width, client_height};
-    // paintHDC = BeginPaint(window, &ps);
-    
-
     update(delta_time);
-
-    // EndPaint(window, &ps);
     frames++;
 }
 
@@ -80,17 +73,13 @@ RECT getScreenRect()
 LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_param)
 {
     LRESULT result;
-
     static PAINTSTRUCT ps;
-    // printf("Message%d\n", message);
-
     switch (message)
     {
     case WM_SYSCOMMAND:
         if (w_param == SC_CLOSE)
         {
             // Handle close button click in the taskbar
-            printf("Task quit\n");
             close_window();
         }
         else
@@ -101,15 +90,6 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     case WM_QUIT:
         DestroyWindow(window);
         return 0;
-    // case WM_PAINT:
-    //     printf("WTF");
-    //     break;
-
-    // case WM_TIMER:
-    //     if (w_param == 1)
-    //         paint(window, hdc);
-    //         // SendMessage(window, WM_PAINT, NULL, NULL);
-    //     return 0;
     case WM_PAINT:
         paint(window, hdc);
         return 0;
@@ -144,8 +124,6 @@ int APIENTRY WinMain(HINSTANCE instance,
 
     RegisterClassA(&window_class);
 
-    error_check("register");
-
     RECT screen_rect = getScreenRect();
     client_width = getRectWidth(screen_rect);
     client_height = getRectHeight(screen_rect);
@@ -165,47 +143,38 @@ int APIENTRY WinMain(HINSTANCE instance,
                             instance,
                             0);
 
-    error_check("window create");
-
     hdc = GetDC(window);
 
-    error_check("hdc");
-
     // Transparent
-    // SetWindowLong(window, GWL_EXSTYLE, GetWindowLong(window, GWL_EXSTYLE) | WS_EX_LAYERED | WS_EX_TRANSPARENT);
     SetLayeredWindowAttributes(window, TRANSPARENT_COLOR, 0, LWA_COLORKEY);
     SetWindowPos(window, HWND_TOPMOST, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
-
-    error_check("transparecnt");
 
     // Starting dt clocks
     startT = clock();
     lastT = clock();
-    
-    // SetTimer(window, 1, 1, NULL); 
-
-    error_check("clock/timer error");
 
     init(window, hdc);
     error_check("init error");
     
     MSG message;
-    while (GetMessage(&message, window, 0, 0))
+    while (running && GetMessage(&message, window, 0, 0))
     {
         TranslateMessage(&message);
         DispatchMessage(&message);
 
-        // // printf("message %d\n", message.message);
         if (message.message == WM_PAINT)
         {
             Sleep(5);
         }
     }
 
+    // Clean up
     ReleaseDC(window, hdc);
     DestroyWindow(window);
-
     KillTimer(window, 1);
+    DeleteObject(transparentBrush);
+
+    destroy(window);
 
     return 0;
 }
