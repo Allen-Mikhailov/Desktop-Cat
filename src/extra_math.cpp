@@ -117,7 +117,7 @@ void CreateBMPFile(HWND hwnd, LPTSTR pszFile, PBITMAPINFO pbi,
     lpBits = (LPBYTE) GlobalAlloc(GMEM_FIXED, pbih->biSizeImage);
 
     if (!lpBits) 
-        printf("it fucked");
+        printf("Error while allocating lpBits\n");
         // errhandler("GlobalAlloc", hwnd); 
 
     // Retrieve the color table (RGBQUAD array) and the bits  
@@ -125,7 +125,7 @@ void CreateBMPFile(HWND hwnd, LPTSTR pszFile, PBITMAPINFO pbi,
     if (!GetDIBits(hDC, hBMP, 0, (WORD) pbih->biHeight, lpBits, pbi, 
         DIB_RGB_COLORS)) 
     {
-        printf("it fucked2");
+        printf("Error getting the color table\n");
     }
 
     // Create the .BMP file.  
@@ -137,7 +137,7 @@ void CreateBMPFile(HWND hwnd, LPTSTR pszFile, PBITMAPINFO pbi,
         FILE_ATTRIBUTE_NORMAL, 
         (HANDLE) NULL); 
     if (hf == INVALID_HANDLE_VALUE) 
-        printf("it fucked3");
+        printf("Error creating the file\n");
     hdr.bfType = 0x4d42;        // 0x42 = "B" 0x4d = "M"  
     // Compute the size of the entire file.  
     hdr.bfSize = (DWORD) (sizeof(BITMAPFILEHEADER) + 
@@ -155,25 +155,26 @@ void CreateBMPFile(HWND hwnd, LPTSTR pszFile, PBITMAPINFO pbi,
     if (!WriteFile(hf, (LPVOID) &hdr, sizeof(BITMAPFILEHEADER), 
         (LPDWORD) &dwTmp,  NULL)) 
     {
-        printf("it fucked4");
+        printf("Error writing the BITMAPFILEHEADER to the .bmp\n");
     }
 
     // Copy the BITMAPINFOHEADER and RGBQUAD array into the file.  
     if (!WriteFile(hf, (LPVOID) pbih, sizeof(BITMAPINFOHEADER) 
         + pbih->biClrUsed * sizeof (RGBQUAD), 
         (LPDWORD) &dwTmp, ( NULL)))
-        printf("it fucked5");
+        printf("Error copying the BITMAPINFOHEADER and RGBQUAD array into the file\n");
 
     // Copy the array of color indices into the .BMP file.  
     dwTotal = cb = pbih->biSizeImage; 
     hp = lpBits; 
     if (!WriteFile(hf, (LPSTR) hp, (int) cb, (LPDWORD) &dwTmp,NULL)) 
-        printf("it fucked6");
+        printf("Error copying the color indices into the .bmp\n");
 
     // Close the .BMP file.  
     if (!CloseHandle(hf)) 
-        printf("it fucked7");
+        printf("Error closing the file handle\n");
 
     // Free memory.  
     GlobalFree((HGLOBAL)lpBits);
 }
+

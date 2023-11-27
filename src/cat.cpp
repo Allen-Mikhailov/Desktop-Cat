@@ -115,56 +115,13 @@ void init(HWND window, HDC hdc)
     reset_drawbuffer();
 
     changeCatTarget(client_width, client_height);
-
-    
-    // SelectObject(testHDC, redBrush);
-
-    // SetBrushOrgEx(testHDC, 0, 0, NULL); // Reset brush origin
-    // SetBrushOrgEx(testHDC, 0, 0, NULL); // Set brush origin to (0, 0)
-    // SetBkMode(testHDC, OPAQUE);
-
-    // HBITMAP drawMap = bufferMap;
-    // HDC drawHDC = bufferHDC;
-
-    // // Drawing 1
-    // SelectObject(drawHDC, redBrush);
-    // Rectangle(drawHDC, 0, 0, 201, 201);
-
-    // // Drawing 2
-    // // RECT rect = {0, 0, 200, 200};
-    // // printf("stuff %d\n", FillRect(testHDC, &rect, redBrush));
-
-    // PBITMAPINFO t = CreateBitmapInfoStruct(window, drawMap);
-    // LPTSTR str = (LPTSTR)"test.bmp";
-    // CreateBMPFile(window, str, t, drawMap, drawHDC);
 }
 
 void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHDC)
 {
-    // Drawing the cat
     int mapX = anim*4 + frame%4;
     int mapY = dir*2 + frame/4 + 1;
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
-
-    // Clearing Area around the cat
-    // SelectObject(hdc, hPen);
-
-    // Top
-    // RECT rect;
-    // rect = {x-SPRITE_UNIT, y-SPRITE_UNIT, x+SPRITE_UNIT*2, y};
-    // FillRect(hdc, &rect, transparentBrush);
-    // // Rectangle(hdc, (int) catX-SPRITE_UNIT, (int)catY-SPRITE_UNIT, (int)catX+SPRITE_UNIT*2, (int)catY);
-
-    // // Bottom
-    // rect = {x-SPRITE_UNIT, y+SPRITE_UNIT, x+SPRITE_UNIT*2, y+SPRITE_UNIT*2};
-    // FillRect(hdc, &rect, transparentBrush);
-
-    // // Left
-    // rect = {x-SPRITE_UNIT, y, x, y+SPRITE_UNIT};
-    // FillRect(hdc, &rect, transparentBrush);
-
-    // rect = {x+SPRITE_UNIT, y, x+SPRITE_UNIT*2, y+SPRITE_UNIT};
-    // FillRect(hdc, &rect, transparentBrush);
 }
 
 void update_running_cat_(double delta_time)
@@ -244,21 +201,10 @@ void update(double delta_time)
         FillRect(hdc, &rect, transparentBrush);
         printf("Initial Fill\n");
     }
-
-    // LARGE_INTEGER frequency, start, end;
-    // QueryPerformanceFrequency(&frequency);
-    // QueryPerformanceCounter(&start);
-
-    // Clearing the original Cat
-    catRect = {(int) catX, (int) catY, (int) catX+SPRITE_UNIT, (int) catY+SPRITE_UNIT};
-    FillRect(bufferHDC, &catRect, transparentBrush);
-
     // printf("FPS: %f\n", 1/delta_time);
 
     update_running_cat_(delta_time);
-    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, bufferHDC, catSheetHDC);
-
-    BitBlt(hdc, 0, 0, client_width, client_height, bufferHDC, 0, 0, SRCCOPY);
+    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
 }
 
 void destroy()
