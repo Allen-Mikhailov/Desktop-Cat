@@ -12,10 +12,21 @@
 #include <cmath>
 #include <math.h>
 #include "window_setup.cpp"
+#include "vector2.cpp"
+#include "sprite_functions.cpp"
+#include "file_extras.cpp"
 
 HDC catSheetHDC;
 BITMAP bitmap;
 HBITMAP catSpriteMap;
+
+// Cat Animations
+#define CA_SITDOWN 0
+#define CA_LOOKAROUND 1
+#define CA_LAYDOWN 2
+#define CA_WALK 3
+#define CA_RUN1 4
+#define CA_RUN2 5
 
 // Cat Variables
 int catAnimDir = 6;
@@ -27,7 +38,6 @@ double catX = 500;
 double catY = 500;
 
 double catVelocity = 0;
-
 double catDirection = 0;
 
 const int targetResetTime = 1000;
@@ -39,7 +49,6 @@ const double catAcceleration = 1500;
 const double catAnimationSpeed = 25;
 const double FRICTION = .97;
 
-char animations[6][3] = {"SD", "LA", "LD", "Wg", "R1", "R2"};
 char directions[8][3] = {"S ", "SW", "W ", "NW", "N ", "NE", "E ", "SE"};
 
 const int SPRITE_SCALE = 3;
@@ -56,13 +65,6 @@ void changeCatTarget(int client_width, int client_height)
 }
 
 HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
-
-void pop_path(char* destination, char* path)
-{
-    // Finding the last slash
-    int index = strrchr(path, '\\') - path;
-    strncpy(destination, path, index);
-}
 
 void init(HWND window, HDC hdc)
 {
@@ -103,6 +105,12 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 }
 
+int CatDirFromAngle(double angle)
+{
+    int anim = (int)((angle+M_PI/8) / (M_PI/4))%8;
+    return (6 - anim + 8)%8;
+}
+
 void update_running_cat_(double delta_time)
 {
     POINT p;
@@ -139,8 +147,7 @@ void update_running_cat_(double delta_time)
         catDirection = fmod(M_PI*2 + catDirection, M_PI*2);
 
 
-        catAnimDir = (int)((catDirection+M_PI/8) / (M_PI/4))%8;
-        catAnimDir = (6 - catAnimDir + 8)%8;
+        catAnimDir = CatDirFromAngle(catDirection);
     }
 
     if (c != 0)
@@ -166,54 +173,6 @@ void update_running_cat_(double delta_time)
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
 }
 
-void coverSpriteDisplacement(HDC hdc, int x, int y, int nx, int ny, int width, int height)
-{
-    int xDif = nx-x;
-    int yDif = ny-y;
-
-    RECT rect;
-    if (abs(xDif) > width || abs(yDif) > height)
-    {
-        // We can just fully cover with another square
-        rect = {nx, ny, nx+width, ny+height};
-        FillRect(hdc, &rect, transparentBrush);
-    } else {
-        // a a a
-        // a b b b
-        // a b b b
-        //   b b b
-
-        // c c c
-        // d b b b
-        // d b b b
-        //   b b b
-
-        int yMin = y;
-        int yMax = y+SPRITE_UNIT;
-
-        // Covering Vertical Displacement
-        if (yDif > 0)
-        {
-            rect = {x, y, x+SPRITE_UNIT, ny};
-            FillRect(hdc, &rect, transparentBrush);
-            yMin = ny;
-        } else {
-            rect = {x, ny+SPRITE_UNIT, x+SPRITE_UNIT, y+SPRITE_UNIT};
-            FillRect(hdc, &rect, transparentBrush);
-            yMax = ny+SPRITE_UNIT;
-        }
-
-        if (xDif > 0)
-        {
-            rect = {x, yMin, nx, yMax};
-            FillRect(hdc, &rect, transparentBrush);
-        } else {
-            rect = {nx+SPRITE_UNIT, yMin, x+SPRITE_UNIT, yMax};
-            FillRect(hdc, &rect, transparentBrush);
-        }
-    }
-}
-
 void update(double delta_time)
 {
     // To get rid of the black lines by doing an Initial fill of transparentBrush
@@ -227,7 +186,7 @@ void update(double delta_time)
     int pCatY = catY;
     update_running_cat_(delta_time);
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
-    coverSpriteDisplacement(hdc, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
+    coverSpriteDisplacement(hdc, transparentBrush, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
 }
 
 void destroy(HWND window)
