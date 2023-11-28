@@ -25,7 +25,12 @@ HBITMAP catSpriteMap;
 int catAnimDir = 6;
 int catAnim = CA_RUN2;
 
-int catState = 0;
+int catState = CATSTATE_SITTING;
+int catTransition = -1;
+double catAnimSpeed = 1;
+
+double state_change_timer = 0;
+const double state_change_length = 5;
 
 double catAnimF = 0;
 
@@ -168,6 +173,73 @@ void update_running_cat_(double delta_time)
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
 }
 
+void update_cat_state(double delta_time)
+{
+    if (catTransition == -1)
+    {
+        // in a state
+        catAnimF = states[catState].animFrame;
+        catAnim = states[catState].animId;
+
+        state_change_timer += delta_time;
+        if (state_change_timer > state_change_length)
+        {
+            state_change_timer = 0;
+            int possibleTransitions = states[catState].transitionsCount;
+            int newTransition = -1;
+            double randAlpha = (double) rand() / RAND_MAX;
+
+            int totalWeights = 0;
+            for (int j = 0; j < possibleTransitions; j++)
+            {
+                totalWeights += states[catState].transitionWeights[j];
+            }
+
+            double i = 0;
+            for (int j = 0; j < possibleTransitions; j++)
+            {
+                i += (double) states[catState].transitionWeights[j] / totalWeights;
+                if (i > randAlpha)
+                {
+                    newTransition = states[catState].transitions[j];
+                    break;
+                }
+            }
+
+            if (newTransition == -1)
+                printf("No transition selected for some reason idk\n");
+
+            int newAnimation = transitions[newTransition].animation;
+
+            catTransition = newTransition;
+            catAnim = animations[newAnimation].animId;
+            catAnimF = animations[newAnimation].frameStart;
+            printf("Starting Transition to %d\n", catTransition);
+        }
+    } else {
+        // In a transition
+        int anim = transitions[catTransition].animation;
+        int animSign = (int) sign(animations[anim].frameEnd-animations[anim].frameStart);
+        double animF = catAnimF+delta_time*catAnimSpeed*animSign;
+
+        double minFrame = (double) min(animations[anim].frameStart, animations[anim].frameEnd);
+        double maxFrame = (double) max(animations[anim].frameStart, animations[anim].frameEnd);
+
+        catAnim = animations[anim].animId;
+
+        if ((int) animF < minFrame || (int) animF > maxFrame)
+        {
+            animF = min(max(animF, minFrame), maxFrame);
+            // end the transition
+            catState = transitions[catTransition].next_state;
+            catTransition = -1;
+            printf("Setting State %d\n", catState);
+        }   
+
+        catAnimF = animF;
+    }
+}
+
 void update(double delta_time)
 {
     // To get rid of the black lines by doing an Initial fill of transparentBrush
@@ -179,7 +251,8 @@ void update(double delta_time)
 
     int pCatX = catX;
     int pCatY = catY;
-    update_running_cat_(delta_time);
+    update_cat_state(delta_time);
+    // update_running_cat_(delta_time);
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
     coverSpriteDisplacement(hdc, transparentBrush, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
 }
