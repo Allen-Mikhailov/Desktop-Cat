@@ -38,3 +38,32 @@ int getRectHeight(RECT rect)
     return rect.bottom-rect.top;
 }
 
+int sum_array(int * array, int length)
+{
+    int sum = 0;
+    for (int i = 0; i < length; i++)
+    {
+        sum += *array;
+        array++;
+    }
+    return sum;
+}
+
+int random_from_weights(int * weights, int length)
+{
+    double randAlpha = (double) rand() / RAND_MAX;
+    int totalWeight = sum_array(weights, length);
+
+    int * weightP = weights;
+
+    double a = 0;
+    for (int i = 0; i < length; i++)
+    {
+        a += (double) *weightP / totalWeight;
+        weightP++;
+        if (a > randAlpha)
+            return i;
+    }
+
+    return -1;
+}

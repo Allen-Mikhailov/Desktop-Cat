@@ -6,11 +6,19 @@
 #define CA_RUN1 4
 #define CA_RUN2 5
 
+struct keyframe
+{
+    int frame;
+    double time;
+};
+
 struct animation
 {
     int animId;
-    int frameStart;
-    int frameEnd;
+    int startingframe;
+    struct keyframe keyframes[10];
+    int keyframeCount;
+    double speedMulti;
 };
 
 #define MAX_TRANSITIONS 10
@@ -61,35 +69,57 @@ struct animation animations[10] = {
     {
         CA_SITDOWN,
         0,
-        5
+        {
+            {5, 5}
+        },
+        1,
+        1.0
     },
 
     // CATANIM_STANDUP
     {
         CA_SITDOWN,
         5,
-        0
+        {
+            {0, 5}
+        },
+        1,
+        1.0
     },
 
     // CATANIM_LOOKAROUND
     {
         CA_LOOKAROUND,
-        0,
-        4
+        2,
+        {
+            {0, 2},
+            {4, 4},
+            {2, 2}
+        },
+        3,
+        1.0
     },
 
     // CATANIM_LAYDOWN
     {
         CA_LAYDOWN,
         0,
-        7
+        {
+            {7, 7}
+        },
+        1,
+        1.0
     },
 
     // CATANIM_GETUP
     {
         CA_LAYDOWN,
         7,
-        0
+        {
+            {0, 7}
+        },
+        1,
+        1.0
     }
 };
 

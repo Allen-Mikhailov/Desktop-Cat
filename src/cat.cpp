@@ -27,6 +27,7 @@ int catAnim = CA_RUN2;
 
 int catState = CATSTATE_SITTING;
 int catTransition = -1;
+int catAnimKeyframe = 0;
 double catAnimSpeed = 6;
 
 double state_change_timer = 0;
@@ -173,67 +174,80 @@ void update_running_cat_(double delta_time)
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
 }
 
+void start_transition(int transitionId)
+{
+    catTransition = transitionId;
+    int newAnimation = transitions[transitionId].animation;
+    catAnim = animations[newAnimation].animId;
+    catAnimF = animations[newAnimation].startingframe;
+    catAnimKeyframe = 0;
+    printf("Starting Transition to %d\n", catTransition);
+}
+
+void set_cat_state(int newState)
+{
+    catState = newState;
+    catTransition = -1;
+    printf("Setting State %d\n", catState);
+}
+
+int get_last_frame(int animationId, int index)
+{
+    if (index == 0)
+        return animations[animationId].startingframe;
+    return animations[animationId].keyframes[index-1].frame;
+}
+
 void update_cat_state(double delta_time)
 {
     if (catTransition == -1)
     {
         // in a state
-        catAnimF = states[catState].animFrame;
-        catAnim = states[catState].animId;
+        struct cat_state *state = &states[catState];
+        catAnimF = state->animFrame;
+        catAnim = state->animId;
 
         state_change_timer += delta_time;
         if (state_change_timer > state_change_length)
         {
             state_change_timer = 0;
-            int possibleTransitions = states[catState].transitionsCount;
-            int newTransition = -1;
-            double randAlpha = (double) rand() / RAND_MAX;
-
-            int totalWeights = 0;
-            for (int j = 0; j < possibleTransitions; j++)
-            {
-                totalWeights += states[catState].transitionWeights[j];
-            }
-
-            double i = 0;
-            for (int j = 0; j < possibleTransitions; j++)
-            {
-                i += (double) states[catState].transitionWeights[j] / totalWeights;
-                if (i > randAlpha)
-                {
-                    newTransition = states[catState].transitions[j];
-                    break;
-                }
-            }
+            int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
 
             if (newTransition == -1)
                 printf("No transition selected for some reason idk\n");
 
-            int newAnimation = transitions[newTransition].animation;
-
-            catTransition = newTransition;
-            catAnim = animations[newAnimation].animId;
-            catAnimF = animations[newAnimation].frameStart;
-            printf("Starting Transition to %d\n", catTransition);
+            start_transition(state->transitions[newTransition]);
         }
     } else {
         // In a transition
-        int anim = transitions[catTransition].animation;
-        int animSign = (int) sign(animations[anim].frameEnd-animations[anim].frameStart);
-        double animF = catAnimF+delta_time*catAnimSpeed*animSign;
+        struct transition *trans = &transitions[catTransition];
+        struct animation *anim = &animations[trans->animation];
+        struct keyframe *Keyframe = &anim->keyframes[catAnimKeyframe];
 
-        double minFrame = (double) min(animations[anim].frameStart, animations[anim].frameEnd);
-        double maxFrame = (double) max(animations[anim].frameStart, animations[anim].frameEnd);
+        int lastFrame = get_last_frame(trans->animation, catAnimKeyframe);
+        int frameDif = Keyframe->frame-lastFrame;
 
-        catAnim = animations[anim].animId;
+        int animSign = (int) sign(frameDif);
+
+        double adjustedSpeed = (abs(frameDif) / Keyframe->time) * catAnimSpeed*anim->speedMulti;
+
+        double animF = catAnimF+delta_time*adjustedSpeed*animSign;
+
+
+        double minFrame = (double) min(lastFrame, Keyframe->frame);
+        double maxFrame = (double) max(lastFrame, Keyframe->frame);
+
+        catAnim = anim->animId;
 
         if ((int) animF < minFrame || (int) animF > maxFrame)
         {
             animF = min(max(animF, minFrame), maxFrame);
-            // end the transition
-            catState = transitions[catTransition].next_state;
-            catTransition = -1;
-            printf("Setting State %d\n", catState);
+
+            catAnimKeyframe++;
+
+            if (catAnimKeyframe >= anim->keyframeCount)
+                // end the transition
+                set_cat_state(trans->next_state);
         }   
 
         catAnimF = animF;
