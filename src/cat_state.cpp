@@ -142,7 +142,7 @@ struct cat_state states[10] = {
         {1},
         1,
 
-        CATANIM_LAYDOWN,
+        CA_LAYDOWN,
         7,
 
         0

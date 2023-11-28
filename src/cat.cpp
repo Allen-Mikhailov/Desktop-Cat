@@ -27,7 +27,7 @@ int catAnim = CA_RUN2;
 
 int catState = CATSTATE_SITTING;
 int catTransition = -1;
-double catAnimSpeed = 1;
+double catAnimSpeed = 6;
 
 double state_change_timer = 0;
 const double state_change_length = 5;
