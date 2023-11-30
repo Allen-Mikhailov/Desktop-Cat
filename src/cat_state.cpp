@@ -15,8 +15,7 @@ struct keyframe
 struct animation
 {
     int animId;
-    int startingframe;
-    struct keyframe keyframes[10];
+    struct keyframe keyframes[20];
     int keyframeCount;
     double speedMulti;
 };
@@ -57,6 +56,9 @@ struct transition
 
 #define CATTRANS_LD_SD 4
 
+#define CATTRANS_WA_SD 5
+#define CATTRANS_RN_SD 6
+
 // Defining Animations
 #define CATANIM_SITDOWN 0
 #define CATANIM_STANDUP 1
@@ -68,57 +70,82 @@ struct animation animations[10] = {
     // CATANIM_SITDOWN
     {
         CA_SITDOWN,
-        0,
         {
-            {5, 5}
+            {0, 1},
+            {1, 1},
+            {2, 1},
+            {3, 1},
+            {4, 1},
+            {5, 1}
         },
-        1,
+        6,
         1.0
     },
 
     // CATANIM_STANDUP
     {
         CA_SITDOWN,
-        5,
         {
-            {0, 5}
+            {5, 1},
+            {4, 1},
+            {3, 1},
+            {2, 1},
+            {1, 1},
+            {0, 1},
         },
-        1,
+        6,
         1.0
     },
 
     // CATANIM_LOOKAROUND
     {
         CA_LOOKAROUND,
-        2,
         {
-            {0, 2},
+            {2, 1},
+            {1, 1},
+            {0, 4},
+            {1, 1},
+            {2, 1},
+            {3, 1},
             {4, 4},
-            {2, 2}
+            {3, 1},
+            {2, 1}
         },
-        3,
+        9,
         1.0
     },
 
     // CATANIM_LAYDOWN
     {
         CA_LAYDOWN,
-        0,
         {
-            {7, 7}
+            {0, 1},
+            {1, 1},
+            {2, 1},
+            {3, 1},
+            {4, 1},
+            {5, 1},
+            {6, 1},
+            {7, 1}
         },
-        1,
+        8,
         1.0
     },
 
     // CATANIM_GETUP
     {
         CA_LAYDOWN,
-        7,
         {
-            {0, 7}
+            {7, 1},
+            {6, 1},
+            {5, 1},
+            {4, 1},
+            {3, 1},
+            {2, 1},
+            {1, 1},
+            {0, 1},
         },
-        1,
+        8,
         1.0
     }
 };
@@ -138,18 +165,32 @@ struct transition transitions[10] = {
 
     // CATTRANS_SD_WA
     {
-
+        CATANIM_STANDUP,
+        CATSTATE_WALKING,
     },
 
     // CATTRANS_SD_RN
     {
-
+        CATANIM_STANDUP,
+        CATSTATE_RUNNING,
     },
 
     // CATTRANS_LD_SD
     {
         CATANIM_GETUP,
         CATSTATE_SITTING
+    },
+
+    // CATTRANS_WA_SD
+    {
+        CATANIM_SITDOWN,
+        CATSTATE_SITTING,
+    },
+
+    // CATTRANS_RN_SD
+    {
+        CATANIM_SITDOWN,
+        CATSTATE_SITTING,
     }
 };
 
@@ -176,7 +217,19 @@ struct cat_state states[10] = {
         7,
 
         0
-    }
-};
+    },
 
-// states[0].
+    // CATSTATE_WALKING
+    {
+        {CATTRANS_WA_SD},
+        {1},
+        1,
+    },
+
+    // CATSTATE_RUNNING
+    {
+        {CATTRANS_RN_SD},
+        {1},
+        1,
+    },
+};

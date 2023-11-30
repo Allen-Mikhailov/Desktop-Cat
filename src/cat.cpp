@@ -29,6 +29,7 @@ int catState = CATSTATE_SITTING;
 int catTransition = -1;
 int catAnimKeyframe = 0;
 double catAnimSpeed = 6;
+double catAnimKeyframeTimer = 0;
 
 double state_change_timer = 0;
 const double state_change_length = 5;
@@ -177,10 +178,14 @@ void update_running_cat_(double delta_time)
 void start_transition(int transitionId)
 {
     catTransition = transitionId;
-    int newAnimation = transitions[transitionId].animation;
-    catAnim = animations[newAnimation].animId;
-    catAnimF = animations[newAnimation].startingframe;
+    catState = -1;
+
+    struct transition *trans = &transitions[transitionId];
+    struct animation *newAnimation = &animations[trans->animation];
+    // catAnim = newAnimation->animId;
     catAnimKeyframe = 0;
+    catAnimKeyframeTimer = 0;
+
     printf("Starting Transition to %d\n", catTransition);
 }
 
@@ -191,11 +196,16 @@ void set_cat_state(int newState)
     printf("Setting State %d\n", catState);
 }
 
-int get_last_frame(int animationId, int index)
+void transition_from_state()
 {
-    if (index == 0)
-        return animations[animationId].startingframe;
-    return animations[animationId].keyframes[index-1].frame;
+    struct cat_state *state = &states[catState];
+    state_change_timer = 0;
+    int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
+
+    if (newTransition == -1)
+        printf("No transition selected for some reason idk\n");
+
+    start_transition(state->transitions[newTransition]);
 }
 
 void update_cat_state(double delta_time)
@@ -210,47 +220,38 @@ void update_cat_state(double delta_time)
         state_change_timer += delta_time;
         if (state_change_timer > state_change_length)
         {
-            state_change_timer = 0;
-            int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
-
-            if (newTransition == -1)
-                printf("No transition selected for some reason idk\n");
-
-            start_transition(state->transitions[newTransition]);
+            transition_from_state();
         }
-    } else {
+    } 
+    
+    if (catTransition != -1) {
         // In a transition
         struct transition *trans = &transitions[catTransition];
         struct animation *anim = &animations[trans->animation];
         struct keyframe *Keyframe = &anim->keyframes[catAnimKeyframe];
 
-        int lastFrame = get_last_frame(trans->animation, catAnimKeyframe);
-        int frameDif = Keyframe->frame-lastFrame;
+        double adjustedSpeed = catAnimSpeed*anim->speedMulti;
 
-        int animSign = (int) sign(frameDif);
-
-        double adjustedSpeed = (abs(frameDif) / Keyframe->time) * catAnimSpeed*anim->speedMulti;
-
-        double animF = catAnimF+delta_time*adjustedSpeed*animSign;
-
-
-        double minFrame = (double) min(lastFrame, Keyframe->frame);
-        double maxFrame = (double) max(lastFrame, Keyframe->frame);
-
-        catAnim = anim->animId;
-
-        if ((int) animF < minFrame || (int) animF > maxFrame)
+        catAnimKeyframeTimer += delta_time * adjustedSpeed;
+        if (catAnimKeyframeTimer > Keyframe->time)
         {
-            animF = min(max(animF, minFrame), maxFrame);
-
+            // Dealing with any leftover  delta_time
+            catAnimKeyframeTimer -= Keyframe->time;
             catAnimKeyframe++;
 
-            if (catAnimKeyframe >= anim->keyframeCount)
-                // end the transition
-                set_cat_state(trans->next_state);
-        }   
+            printf("Passed: %d\n",Keyframe->frame);
 
-        catAnimF = animF;
+            if (catAnimKeyframe >= anim->keyframeCount)
+            {
+                set_cat_state(trans->next_state);
+                return;
+            }
+
+            Keyframe = &anim->keyframes[catAnimKeyframe];
+        }
+
+        catAnim = anim->animId;
+        catAnimF = Keyframe->frame;
     }
 }
 
@@ -265,7 +266,20 @@ void update(double delta_time)
 
     int pCatX = catX;
     int pCatY = catY;
-    update_cat_state(delta_time);
+
+    switch (catState)
+    {
+        case CATSTATE_RUNNING:
+            update_running_cat_(delta_time);
+            state_change_timer += delta_time;
+            if (state_change_timer > state_change_length)
+                transition_from_state();
+            break;
+        case CATSTATE_WALKING:
+            break;
+        default:
+            update_cat_state(delta_time);
+    }
     // update_running_cat_(delta_time);
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
     coverSpriteDisplacement(hdc, transparentBrush, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
