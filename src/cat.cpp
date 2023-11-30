@@ -22,7 +22,7 @@ BITMAP bitmap;
 HBITMAP catSpriteMap;
 
 // Cat Variables
-int catAnimDir = 6;
+int catAnimDir = 4;
 int catAnim = CA_RUN2;
 
 int catState = CATSTATE_SITTING;
@@ -191,6 +191,13 @@ void start_transition(int transitionId)
     printf("Starting Transition to %d\n", catTransition);
 }
 
+int pick_view_direction()
+{
+    int directions = sizeof(viewDirections) / sizeof(int);
+
+    return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
+}
+
 void set_cat_state(int newState)
 {
     catState = newState;
@@ -218,6 +225,10 @@ void update_cat_state(double delta_time)
         struct cat_state *state = &states[catState];
         catAnimF = state->animFrame;
         catAnim = state->animId;
+
+        // Handing the weird stuff with north and south sitting
+        if (catState == CATSTATE_SITTING && (catAnimDir == 0 || catAnimDir == 4))
+            catAnimF = 6;
 
         state_change_timer += delta_time;
         if (state_change_timer > state_change_length)
@@ -275,7 +286,10 @@ void update(double delta_time)
             update_running_cat_(delta_time);
             state_change_timer += delta_time;
             if (state_change_timer > state_change_length)
+            {
+                catAnimDir = pick_view_direction();
                 transition_from_state();
+            }
             break;
         case CATSTATE_WALKING:
             break;

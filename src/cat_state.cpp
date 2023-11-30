@@ -233,3 +233,5 @@ struct cat_state states[10] = {
         1,
     },
 };
+
+int viewDirections[] = {0, 1, 2, 6, 7};
