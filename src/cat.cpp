@@ -32,7 +32,7 @@ double catAnimSpeed = 6;
 double catAnimKeyframeTimer = 0;
 
 double state_change_timer = 0;
-const double state_change_length = 5;
+const double state_change_length = 20;
 
 double catAnimF = 0;
 
@@ -115,6 +115,8 @@ int CatDirFromAngle(double angle)
 
 void update_running_cat_(double delta_time)
 {
+    catAnim = CA_RUN2;
+
     POINT p;
     GetCursorPos(&p);
 
