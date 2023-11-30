@@ -32,7 +32,7 @@ double catAnimSpeed = 6;
 double catAnimKeyframeTimer = 0;
 
 double state_change_timer = 0;
-const double state_change_length = 20;
+const double state_change_length = 3;
 
 double catAnimF = 0;
 
@@ -287,7 +287,11 @@ void update(double delta_time)
             state_change_timer += delta_time;
             if (state_change_timer > state_change_length)
             {
-                catAnimDir = pick_view_direction();
+                if (catAnimDir >= 2 && catAnimDir <= 4)
+                    catAnimDir = 1;
+                else if (catAnimDir == 5 || catAnimDir == 6)
+                    catAnimDir = 7;
+
                 transition_from_state();
             }
             break;
