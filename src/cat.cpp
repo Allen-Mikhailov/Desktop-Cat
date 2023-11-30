@@ -74,8 +74,6 @@ void init(HWND window, HDC hdc)
 
     SelectObject(hdc, hPen);
 
-    catSheetHDC = CreateCompatibleDC(hdc);
-
     // Getting the path of the sprite sheet
     char filePath[MAX_PATH]; 
     GetModuleFileNameA(NULL, filePath, MAX_PATH);
@@ -90,8 +88,11 @@ void init(HWND window, HDC hdc)
     // 1x 1024 544
     // 2x 2048, 1088
     // 3x 3072, 1632
+    catSheetHDC = CreateCompatibleDC(hdc);
     catSpriteMap = (HBITMAP) LoadImageA(hinstance, catSpritesPath, IMAGE_BITMAP, 
         1024*SPRITE_SCALE, 544*SPRITE_SCALE, LR_LOADFROMFILE);
+    if (catSpriteMap == NULL)
+        printf("Failed to load spritemap\n");
 
 
     SelectObject(catSheetHDC, catSpriteMap);
@@ -198,6 +199,15 @@ int pick_view_direction()
     return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
 }
 
+int snap_cat_direction(int dir)
+{
+    if (dir >= 2 && dir <= 4)
+        return 1;
+    else if (dir == 5 || dir == 6)
+        return 7;
+    return dir;
+}
+
 void set_cat_state(int newState)
 {
     catState = newState;
@@ -287,10 +297,7 @@ void update(double delta_time)
             state_change_timer += delta_time;
             if (state_change_timer > state_change_length)
             {
-                if (catAnimDir >= 2 && catAnimDir <= 4)
-                    catAnimDir = 1;
-                else if (catAnimDir == 5 || catAnimDir == 6)
-                    catAnimDir = 7;
+                catAnimDir = snap_cat_direction(catAnimDir);
 
                 transition_from_state();
             }

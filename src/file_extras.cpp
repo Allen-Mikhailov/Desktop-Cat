@@ -15,11 +15,13 @@ PBITMAPINFO CreateBitmapInfoStruct(HWND hwnd, HBITMAP hBmp)
 { 
     BITMAP bmp; 
     PBITMAPINFO pbmi; 
-    WORD    cClrBits; 
+    WORD    cClrBits;
 
     // Retrieve the bitmap color format, width, and height.  
     if (!GetObject(hBmp, sizeof(BITMAP), (LPSTR)&bmp)) 
-        printf("it fucked-1");
+        printf("Unable to retrieve the bitmap color format, width, and height\n");
+
+    error_check("Color retreive");
 
     // Convert the color format to a count of bits.  
     cClrBits = (WORD)(bmp.bmPlanes * bmp.bmBitsPixel); 
