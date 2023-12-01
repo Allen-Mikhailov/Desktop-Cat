@@ -50,8 +50,38 @@ void paint(HWND window, HDC paintHDC)
 void error_check(const char* string)
 {
     DWORD lastError = GetLastError();
-    if (lastError != 0)
-        printf("%s failed with error code %lu\n", string, lastError);
+
+    // Buffer to hold the formatted message
+    LPWSTR errorMsg = nullptr;
+
+    // Call FormatMessageW to retrieve the error message
+    DWORD dwSize = FormatMessageW(
+        FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM,
+        nullptr,
+        lastError,
+        0, // Default language
+        reinterpret_cast<LPWSTR>(&errorMsg),
+        0,
+        nullptr
+    );
+
+    if (dwSize == 0) {
+        // Handle the error if FormatMessageW fails
+        DWORD dwError = GetLastError();
+        wprintf(L"FormatMessageW failed with error %lu\n", dwError);
+    } else {
+        // Print or use the retrieved error message
+        wprintf(L"Error %lu:\n", lastError);
+        wprintf(L"%ls\n", errorMsg);
+
+        // Don't forget to free the allocated buffer
+        LocalFree(errorMsg);
+    }
+
+    SetLastError(0);
+    
+    // if (lastError != 0)
+    //     printf("%s failed with error code %lu\n", string, lastError);
 }
 
 void close_window()

@@ -9,6 +9,7 @@ echo.
 
 @REM Removing old build
 del  /Q .\build\*
+del .\shadows.bmp
 
 echo Building................................................
 echo.

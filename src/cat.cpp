@@ -18,8 +18,10 @@
 #include "cat_state.cpp"
 
 HDC catSheetHDC;
-BITMAP bitmap;
 HBITMAP catSpriteMap;
+
+HDC shadowCatSpriteHDC;
+HBITMAP shadowCatSpriteMap;
 
 // Cat Variables
 int catAnimDir = 4;
@@ -57,6 +59,11 @@ const int SPRITE_SCALE = 3;
 const int SPRITE_SIZE = 32;
 const int SPRITE_UNIT = SPRITE_SCALE*SPRITE_SIZE;
 
+#define SPRITE_SHEET_WIDTH SPRITE_SCALE * 1024
+#define SPRITE_SHEET_HEIGHT SPRITE_SCALE * 544
+
+HBRUSH shadowBrush = CreateSolidBrush(RGB(100, 100, 100));
+
 using namespace std;
 
 const int BORDER_PADING = 200;
@@ -89,14 +96,46 @@ void init(HWND window, HDC hdc)
     // 2x 2048, 1088
     // 3x 3072, 1632
     catSheetHDC = CreateCompatibleDC(hdc);
-    catSpriteMap = (HBITMAP) LoadImageA(hinstance, catSpritesPath, IMAGE_BITMAP, 
+    error_check("create stuff4");
+    catSpriteMap = (HBITMAP) LoadImageA(NULL, catSpritesPath, IMAGE_BITMAP, 
         1024*SPRITE_SCALE, 544*SPRITE_SCALE, LR_LOADFROMFILE);
     if (catSpriteMap == NULL)
         printf("Failed to load spritemap\n");
 
+    error_check("create stuff3");
+    shadowCatSpriteHDC = CreateCompatibleDC(hdc);
+    error_check("create stuff2");
+    shadowCatSpriteMap = createCompatibleBitmap(hdc, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT);
+    SelectObject(shadowCatSpriteHDC, shadowCatSpriteMap);
+    SelectObject(shadowCatSpriteHDC, hPen);
+
+    // Filling with transparent Background
+    RECT rect = {0, 0, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT};
+    FillRect(shadowCatSpriteHDC, &rect, transparentBrush);
+
+    SelectObject(shadowCatSpriteHDC, shadowBrush);
+
+    // Shadow Placement
+    for (int x = 0; x < 24; x++)
+    {
+        for (int y = 0; y < 17; y++)
+        {
+            Ellipse(shadowCatSpriteHDC, 
+                x*SPRITE_UNIT+SPRITE_UNIT/10, 
+                y*SPRITE_UNIT+SPRITE_UNIT/2, 
+                (x+1)*SPRITE_UNIT-SPRITE_UNIT/10, 
+                (y+1)*SPRITE_UNIT)-SPRITE_UNIT/2;
+        }
+    }
+
+    BitBlt(shadowCatSpriteHDC, 0, 0, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT, catSheetHDC, 0, 0, SRCCOPY);
+
+    PBITMAPINFO pi = CreateBitmapInfoStruct(window, shadowCatSpriteMap);
+    CreateBMPFile(window, (LPTSTR) "./shadows.bmp", pi, shadowCatSpriteMap, shadowCatSpriteHDC);
+
 
     SelectObject(catSheetHDC, catSpriteMap);
-    GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
+    // GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
 
     changeCatTarget(client_width, client_height);
 }
