@@ -71,7 +71,8 @@ void error_check(const char* string)
         wprintf(L"FormatMessageW failed with error %lu\n", dwError);
     } else {
         // Print or use the retrieved error message
-        wprintf(L"Error %lu:\n", lastError);
+        printf("%s ", string);
+        wprintf(L"errored %lu:\n", lastError);
         wprintf(L"%ls\n", errorMsg);
 
         // Don't forget to free the allocated buffer

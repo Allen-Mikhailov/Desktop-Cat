@@ -23,8 +23,11 @@ HBITMAP catSpriteMap;
 HDC shadowCatSpriteHDC;
 HBITMAP shadowCatSpriteMap;
 
+HDC maskHDC;
+HBITMAP maskMap;
+
 // Cat Variables
-int catAnimDir = 4;
+int catAnimDir = 0;
 int catAnim = CA_RUN2;
 
 int catState = CATSTATE_SITTING;
@@ -34,7 +37,7 @@ double catAnimSpeed = 6;
 double catAnimKeyframeTimer = 0;
 
 double state_change_timer = 0;
-const double state_change_length = 3;
+const double state_change_length = 20;
 
 double catAnimF = 0;
 
@@ -75,6 +78,24 @@ void changeCatTarget(int client_width, int client_height)
 
 HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
 
+void fillBMInfoHeader(BITMAPINFOHEADER *bi, HBITMAP hbitmap)
+{
+    BITMAP bitmapInfo;
+    GetObject(hbitmap, sizeof(BITMAP), &bitmapInfo);
+
+    bi->biSize = sizeof(BITMAPINFOHEADER);
+    bi->biWidth = bitmapInfo.bmWidth;
+    bi->biHeight = -bitmapInfo.bmHeight;  // Negative height to ensure top-down DIB
+    bi->biPlanes = 1;
+    bi->biBitCount = bitmapInfo.bmBitsPixel;
+    bi->biCompression = BI_RGB;
+    bi->biSizeImage = 0;
+    bi->biXPelsPerMeter = 0;
+    bi->biYPelsPerMeter = 0;
+    bi->biClrUsed = 0;
+    bi->biClrImportant = 0;
+}
+
 void init(HWND window, HDC hdc)
 {
     // SetTimer(window, 2, targetResetTime, NULL); 
@@ -96,23 +117,22 @@ void init(HWND window, HDC hdc)
     // 2x 2048, 1088
     // 3x 3072, 1632
     catSheetHDC = CreateCompatibleDC(hdc);
-    error_check("create stuff4");
     catSpriteMap = (HBITMAP) LoadImageA(NULL, catSpritesPath, IMAGE_BITMAP, 
         1024*SPRITE_SCALE, 544*SPRITE_SCALE, LR_LOADFROMFILE);
     if (catSpriteMap == NULL)
         printf("Failed to load spritemap\n");
+    SelectObject(catSheetHDC, catSpriteMap);
+    SetBkColor(catSheetHDC, RGB(255, 255, 255));
 
-    error_check("create stuff3");
+    // Creating Shadow Map
     shadowCatSpriteHDC = CreateCompatibleDC(hdc);
-    error_check("create stuff2");
     shadowCatSpriteMap = createCompatibleBitmap(hdc, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT);
     SelectObject(shadowCatSpriteHDC, shadowCatSpriteMap);
-    SelectObject(shadowCatSpriteHDC, hPen);
+    // SelectObject(shadowCatSpriteHDC, hPen);
 
     // Filling with transparent Background
     RECT rect = {0, 0, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT};
     FillRect(shadowCatSpriteHDC, &rect, transparentBrush);
-
     SelectObject(shadowCatSpriteHDC, shadowBrush);
 
     // Shadow Placement
@@ -122,20 +142,49 @@ void init(HWND window, HDC hdc)
         {
             Ellipse(shadowCatSpriteHDC, 
                 x*SPRITE_UNIT+SPRITE_UNIT/10, 
-                y*SPRITE_UNIT+SPRITE_UNIT/2, 
+                y*SPRITE_UNIT+SPRITE_UNIT/3, 
                 (x+1)*SPRITE_UNIT-SPRITE_UNIT/10, 
-                (y+1)*SPRITE_UNIT)-SPRITE_UNIT/2;
+                (y+1)*SPRITE_UNIT-SPRITE_UNIT/10);
         }
     }
 
-    BitBlt(shadowCatSpriteHDC, 0, 0, SPRITE_SHEET_WIDTH, SPRITE_SHEET_HEIGHT, catSheetHDC, 0, 0, SRCCOPY);
+    printf("Starting to draw shadow map\n");
 
-    PBITMAPINFO pi = CreateBitmapInfoStruct(window, shadowCatSpriteMap);
-    CreateBMPFile(window, (LPTSTR) "./shadows.bmp", pi, shadowCatSpriteMap, shadowCatSpriteHDC);
+    BITMAPINFOHEADER spriteSheetBitMapHeader; 
+    fillBMInfoHeader(&spriteSheetBitMapHeader, shadowCatSpriteMap);
 
+    BYTE* spriteMapBits = new BYTE[SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT * (32 / 8)];
+    BYTE* shadowMapBits = new BYTE[SPRITE_SHEET_WIDTH * SPRITE_SHEET_HEIGHT * (32 / 8)];
 
-    SelectObject(catSheetHDC, catSpriteMap);
-    // GetObject(catSpriteMap, sizeof(bitmap), &bitmap);
+    if (!GetDIBits(catSheetHDC, catSpriteMap, 0, SPRITE_SHEET_HEIGHT, 
+        spriteMapBits, (BITMAPINFO*)&spriteSheetBitMapHeader, DIB_RGB_COLORS))
+        error_check("GetDIBts 1");
+
+    if (!GetDIBits(shadowCatSpriteHDC, shadowCatSpriteMap, 0, SPRITE_SHEET_HEIGHT, 
+        shadowMapBits, (BITMAPINFO*)&spriteSheetBitMapHeader, DIB_RGB_COLORS))
+        error_check("GetDIBts 2");
+
+    for (int y = 0; y < SPRITE_SHEET_HEIGHT; ++y) {
+        for (int x = 0; x < SPRITE_SHEET_WIDTH; ++x) {
+            int index = (y * SPRITE_SHEET_WIDTH + x) * (32 / 8);
+
+            // Check if the pixel color matches the ignoreColor
+            if (!(spriteMapBits[index] == 255 
+                && spriteMapBits[index+1] == 255 
+                && spriteMapBits[index+2] == 255)) {
+                shadowMapBits[index] = spriteMapBits[index];
+                shadowMapBits[index+1] = spriteMapBits[index+1];
+                shadowMapBits[index+2] = spriteMapBits[index+2];
+            }
+        }
+    }
+
+    if (!SetDIBits(shadowCatSpriteHDC, shadowCatSpriteMap, 0, SPRITE_SHEET_HEIGHT, 
+        shadowMapBits, (BITMAPINFO*)&spriteSheetBitMapHeader, DIB_RGB_COLORS))
+        printf("Setting DIBits");
+
+    delete[] spriteMapBits;
+    delete[] shadowMapBits;
 
     changeCatTarget(client_width, client_height);
 }
@@ -347,8 +396,9 @@ void update(double delta_time)
             update_cat_state(delta_time);
     }
     // update_running_cat_(delta_time);
-    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, catSheetHDC);
+    DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, shadowCatSpriteHDC);
     coverSpriteDisplacement(hdc, transparentBrush, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
+    
 }
 
 void destroy(HWND window)
