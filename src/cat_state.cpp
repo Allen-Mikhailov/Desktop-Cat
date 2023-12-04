@@ -197,9 +197,9 @@ struct transition transitions[10] = {
 struct cat_state states[10] = {
     // CATSTATE_SITTING
     {
-        {CATTRANS_SD_LA, CATTRANS_SD_LD, CATTRANS_SD_RN},
-        {1, 1, 10},
-        3,
+        {CATTRANS_SD_LA, CATTRANS_SD_LD, CATTRANS_SD_RN, CATTRANS_SD_WA},
+        {1, 1, 1, 10},
+        4,
 
         CA_SITDOWN,
         5,

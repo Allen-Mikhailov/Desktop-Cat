@@ -49,9 +49,14 @@ int sum_array(int * array, int length)
     return sum;
 }
 
+double random()
+{
+    return  (double) rand() / RAND_MAX;
+}
+
 int random_from_weights(int * weights, int length)
 {
-    double randAlpha = (double) rand() / RAND_MAX;
+    double randAlpha = random();
     int totalWeight = sum_array(weights, length);
 
     int * weightP = weights;

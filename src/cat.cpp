@@ -36,8 +36,17 @@ int catAnimKeyframe = 0;
 double catAnimSpeed = 6;
 double catAnimKeyframeTimer = 0;
 
+double catWalkTargetX = 0;
+double catWalkTargetY = 0;
+
+const double maxCatWalkDistance = 300;
+const double minCatWalkDistance = 50;
+const double catWalkPadding = 200;
+const double catWalkSpeed = 50;
+const double walkAnimSpeed = 4;
+
 double state_change_timer = 0;
-const double state_change_length = 20;
+const double state_change_length = 3;
 
 double catAnimF = 0;
 
@@ -65,7 +74,8 @@ const int SPRITE_UNIT = SPRITE_SCALE*SPRITE_SIZE;
 #define SPRITE_SHEET_WIDTH SPRITE_SCALE * 1024
 #define SPRITE_SHEET_HEIGHT SPRITE_SCALE * 544
 
-HBRUSH shadowBrush = CreateSolidBrush(RGB(100, 100, 100));
+HBRUSH shadowBrush = CreateSolidBrush(RGB(75, 75, 75));
+HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
 
 using namespace std;
 
@@ -76,7 +86,12 @@ void changeCatTarget(int client_width, int client_height)
     catTargetOffsetY = BORDER_PADING + (int) ( (double) rand() / RAND_MAX* ( client_height  - BORDER_PADING * 2 ) );
 }
 
-HPEN hPen = CreatePen(PS_NULL, 1, RGB(255, 0, 0));
+int CatDirFromAngle(double angle)
+{
+    angle = fmod(M_PI*2 + angle, M_PI*2);
+    int anim = (int)((angle+M_PI/8) / (M_PI/4))%8;
+    return (6 - anim + 8)%8;
+}
 
 void fillBMInfoHeader(BITMAPINFOHEADER *bi, HBITMAP hbitmap)
 {
@@ -196,10 +211,114 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 }
 
-int CatDirFromAngle(double angle)
+int find_walk_point()
 {
-    int anim = (int)((angle+M_PI/8) / (M_PI/4))%8;
-    return (6 - anim + 8)%8;
+    int pathAttempts = 0;
+    while (pathAttempts < 10)
+    {   
+        pathAttempts++;
+
+        int dir = (int) (random()*8);
+        double dirAngle = (double) dir * M_PI/4;
+
+        double distance = minCatWalkDistance + random()*(maxCatWalkDistance - minCatWalkDistance);
+        int newX = catX+SPRITE_UNIT/2 + (int)(cos(dirAngle)*distance);
+        int newY = catY+SPRITE_UNIT/2 + (int)(sin(dirAngle)*distance);
+
+        // Checking for outa bounds
+        if (newX < catWalkPadding || newX > client_width-catWalkPadding
+            || newY < catWalkPadding || newY > client_height-catWalkPadding)
+            continue;
+
+        double newAngle = atan2(-sin(dirAngle), cos(dirAngle));
+
+        catWalkTargetX = newX-SPRITE_UNIT/2;
+        catWalkTargetY = newY-SPRITE_UNIT/2;
+        catAnimDir = CatDirFromAngle(newAngle);
+
+        printf("Walking from %d %d to %d %d\n", (int) catX, (int) catY, (int) catWalkTargetX, (int) catWalkTargetY);
+        return 1;
+    }
+    return 0;
+}
+
+void start_transition(int transitionId)
+{
+    catTransition = transitionId;
+    catState = -1;
+
+    struct transition *trans = &transitions[transitionId];
+    struct animation *newAnimation = &animations[trans->animation];
+    // catAnim = newAnimation->animId;
+    catAnimKeyframe = 0;
+    catAnimKeyframeTimer = 0;
+
+    printf("Starting Transition to %d\n", catTransition);
+}
+
+void transition_from_state()
+{
+    struct cat_state *state = &states[catState];
+    state_change_timer = 0;
+    int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
+
+    if (newTransition == -1)
+        printf("No transition selected for some reason idk\n");
+
+    start_transition(state->transitions[newTransition]);
+}
+
+void set_cat_state(int newState)
+{
+    catState = newState;
+    catTransition = -1;
+    printf("Setting State %d\n", catState);
+
+    switch (newState)
+    {
+        case CATSTATE_WALKING:
+            if (!find_walk_point())
+                transition_from_state();
+    }
+}
+
+int pick_view_direction()
+{
+    int directions = sizeof(viewDirections) / sizeof(int);
+
+    return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
+}
+
+int snap_cat_direction(int dir)
+{
+    if (dir >= 2 && dir <= 4)
+        return 1;
+    else if (dir == 5 || dir == 6)
+        return 7;
+    return dir;
+}
+
+void update_walking_cat(double delta_time)
+{
+    catAnim = CA_WALK;
+    double xDif = catWalkTargetX-catX;
+    double yDif = catWalkTargetY-catY;
+
+    double angle = atan2(yDif, xDif);
+
+    double xDist = min(abs(xDif), catWalkSpeed*delta_time*abs(cos(angle)));
+    double yDist = min(abs(yDif), catWalkSpeed*delta_time*abs(sin(angle)));
+
+    catAnimF = fmod( catAnimF + delta_time * walkAnimSpeed, 4 );
+
+    catX += xDist*sign(xDif);
+    catY += yDist*sign(yDif);
+
+    if (abs(catX-catWalkTargetX) < 1 && abs(catY-catWalkTargetY) < 1)
+    {
+        printf("Finished walking\n");
+        transition_from_state();
+    }
 }
 
 void update_running_cat_(double delta_time)
@@ -237,8 +356,6 @@ void update_running_cat_(double delta_time)
             catDirection += rotDif;
         else 
             catDirection += rotSign*catTurnSpeed*delta_time;
-        catDirection = fmod(M_PI*2 + catDirection, M_PI*2);
-
 
         catAnimDir = CatDirFromAngle(catDirection);
     }
@@ -264,55 +381,6 @@ void update_running_cat_(double delta_time)
     }
 
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
-}
-
-void start_transition(int transitionId)
-{
-    catTransition = transitionId;
-    catState = -1;
-
-    struct transition *trans = &transitions[transitionId];
-    struct animation *newAnimation = &animations[trans->animation];
-    // catAnim = newAnimation->animId;
-    catAnimKeyframe = 0;
-    catAnimKeyframeTimer = 0;
-
-    printf("Starting Transition to %d\n", catTransition);
-}
-
-int pick_view_direction()
-{
-    int directions = sizeof(viewDirections) / sizeof(int);
-
-    return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
-}
-
-int snap_cat_direction(int dir)
-{
-    if (dir >= 2 && dir <= 4)
-        return 1;
-    else if (dir == 5 || dir == 6)
-        return 7;
-    return dir;
-}
-
-void set_cat_state(int newState)
-{
-    catState = newState;
-    catTransition = -1;
-    printf("Setting State %d\n", catState);
-}
-
-void transition_from_state()
-{
-    struct cat_state *state = &states[catState];
-    state_change_timer = 0;
-    int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
-
-    if (newTransition == -1)
-        printf("No transition selected for some reason idk\n");
-
-    start_transition(state->transitions[newTransition]);
 }
 
 void update_cat_state(double delta_time)
@@ -391,6 +459,7 @@ void update(double delta_time)
             }
             break;
         case CATSTATE_WALKING:
+            update_walking_cat(delta_time);
             break;
         default:
             update_cat_state(delta_time);
@@ -406,4 +475,5 @@ void destroy(HWND window)
     ReleaseDC(window, catSheetHDC);
     DeleteObject(catSpriteMap);
     DeleteObject(hPen);
+    DeleteObject(shadowBrush);
 }   
