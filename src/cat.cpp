@@ -41,8 +41,8 @@ double catWalkTargetY = 0;
 
 const double maxCatWalkDistance = 300;
 const double minCatWalkDistance = 50;
-const double catWalkPadding = 200;
-const double catWalkSpeed = 50;
+const double catWalkPadding = 400;
+const double catWalkSpeed = 100;
 const double walkAnimSpeed = 4;
 
 double state_change_timer = 0;
@@ -118,13 +118,13 @@ void init(HWND window, HDC hdc)
     SelectObject(hdc, hPen);
 
     // Getting the path of the sprite sheet
-    char filePath[MAX_PATH]; 
+    char filePath[MAX_PATH] = ""; 
     GetModuleFileNameA(NULL, filePath, MAX_PATH);
 
-    char buildPath[MAX_PATH];
+    char buildPath[MAX_PATH] = "";
     pop_path(buildPath, filePath);
 
-    char catSpritesPath[MAX_PATH];
+    char catSpritesPath[MAX_PATH] = "";
     strcpy(catSpritesPath, buildPath);
     strcat(catSpritesPath, "\\Cats.bmp");
 
@@ -211,6 +211,15 @@ void DrawCat(int x, int y, int anim, int dir, int frame, HDC hdc, HDC catSheetHD
     BitBlt(hdc, x, y, SPRITE_UNIT, SPRITE_UNIT, catSheetHDC, SPRITE_UNIT*mapX, SPRITE_UNIT*mapY, SRCCOPY);
 }
 
+int snap_cat_direction(int dir)
+{
+    if (dir >= 2 && dir <= 4)
+        return 1;
+    else if (dir == 5 || dir == 6)
+        return 7;
+    return dir;
+}
+
 int find_walk_point()
 {
     int pathAttempts = 0;
@@ -249,7 +258,6 @@ void start_transition(int transitionId)
 
     struct transition *trans = &transitions[transitionId];
     struct animation *newAnimation = &animations[trans->animation];
-    // catAnim = newAnimation->animId;
     catAnimKeyframe = 0;
     catAnimKeyframeTimer = 0;
 
@@ -258,6 +266,7 @@ void start_transition(int transitionId)
 
 void transition_from_state()
 {
+    catAnimDir = snap_cat_direction(catAnimDir);
     struct cat_state *state = &states[catState];
     state_change_timer = 0;
     int newTransition = random_from_weights(state->transitionWeights, state->transitionsCount);
@@ -287,15 +296,6 @@ int pick_view_direction()
     int directions = sizeof(viewDirections) / sizeof(int);
 
     return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
-}
-
-int snap_cat_direction(int dir)
-{
-    if (dir >= 2 && dir <= 4)
-        return 1;
-    else if (dir == 5 || dir == 6)
-        return 7;
-    return dir;
 }
 
 void update_walking_cat(double delta_time)
@@ -381,6 +381,10 @@ void update_running_cat_(double delta_time)
     }
 
     catAnimF = fmod(catAnimF+delta_time*catVelocity/catVelocityCap*catAnimationSpeed, 8);
+
+    state_change_timer += delta_time;
+    if (state_change_timer > state_change_length)
+        transition_from_state();
 }
 
 void update_cat_state(double delta_time)
@@ -450,13 +454,6 @@ void update(double delta_time)
     {
         case CATSTATE_RUNNING:
             update_running_cat_(delta_time);
-            state_change_timer += delta_time;
-            if (state_change_timer > state_change_length)
-            {
-                catAnimDir = snap_cat_direction(catAnimDir);
-
-                transition_from_state();
-            }
             break;
         case CATSTATE_WALKING:
             update_walking_cat(delta_time);

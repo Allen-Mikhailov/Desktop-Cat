@@ -27,11 +27,27 @@ HDC hdc;
 HINSTANCE hinstance;
 HDC paintHDC;
 
+HHOOK MouseHook = NULL;
+LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0) {
+        // Mouse event occurred
+        if (wParam == WM_LBUTTONDOWN) {
+            printf("Mouse Down");
+        }
+    }
+
+    // Call the next hook in the chain
+    return CallNextHookEx(MouseHook, nCode, wParam, lParam);
+}
+
 // Window vars
 int client_width;
 int client_height;
 
 int frames = 0;
+
+// input vars
+int mousedown = 0;
 
 void update(double delta_time);
 void init(HWND window, HDC hdc);
@@ -109,14 +125,9 @@ LRESULT CALLBACK WindowProc(HWND window, UINT message, WPARAM w_param, LPARAM l_
     {
     case WM_SYSCOMMAND:
         if (w_param == SC_CLOSE)
-        {
-            // Handle close button click in the taskbar
             close_window();
-        }
         else
-        {
             result = DefWindowProc(window, message, w_param, l_param);
-        }
         break;
     case WM_QUIT:
         DestroyWindow(window);
@@ -184,6 +195,13 @@ int APIENTRY WinMain(HINSTANCE instance,
     startT = clock();
     lastT = clock();
 
+    // Mouse Hook
+    MouseHook = SetWindowsHookEx(WH_MOUSE_LL, MouseHookProc, GetModuleHandle(NULL), 0);
+    if (MouseHook == NULL) {
+        printf("Failed to get mouse hook");
+        return 1;
+    }
+
     init(window, hdc);
     error_check("init error");
     
@@ -204,6 +222,8 @@ int APIENTRY WinMain(HINSTANCE instance,
     DestroyWindow(window);
     KillTimer(window, 1);
     DeleteObject(transparentBrush);
+
+    UnhookWindowsHookEx(MouseHook);
 
     destroy(window);
 
