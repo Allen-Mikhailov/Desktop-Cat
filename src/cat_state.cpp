@@ -41,12 +41,13 @@ struct transition
 };
 
 // Defining States
-#define CATSTATE_SITTING 0
-#define CATSTATE_LAYING_DOWN 1
-#define CATSTATE_WALKING 2
-#define CATSTATE_RUNNING 3
-#define CATSTATE_STANDING 4
-#define CATSTATE_LOOKING_AROUND 5 // probably will remain unused for now
+#define CATSTATE_SITTING        0
+#define CATSTATE_LAYING_DOWN    1
+#define CATSTATE_WALKING        2
+#define CATSTATE_RUNNING        3
+#define CATSTATE_DRAGGING       4
+#define CATSTATE_STANDING       5
+#define CATSTATE_LOOKING_AROUND 6 // probably will remain unused for now
 
 // Defining Transitions
 #define CATTRANS_SD_LA 0
@@ -59,12 +60,14 @@ struct transition
 #define CATTRANS_WA_SD 5
 #define CATTRANS_RN_SD 6
 
+#define CATTRANS_DG_SD 7
+
 // Defining Animations
-#define CATANIM_SITDOWN 0
-#define CATANIM_STANDUP 1
+#define CATANIM_SITDOWN    0
+#define CATANIM_STANDUP    1
 #define CATANIM_LOOKAROUND 2
-#define CATANIM_LAYDOWN 3
-#define CATANIM_GETUP 4
+#define CATANIM_LAYDOWN    3
+#define CATANIM_GETUP      4
 
 struct animation animations[10] = {
     // CATANIM_SITDOWN
@@ -191,6 +194,12 @@ struct transition transitions[10] = {
     {
         CATANIM_SITDOWN,
         CATSTATE_SITTING,
+    },
+
+    // CATTRANS_DG_SD
+    {
+        CATANIM_SITDOWN,
+        CATSTATE_SITTING,
     }
 };
 
@@ -232,6 +241,13 @@ struct cat_state states[10] = {
         {1},
         1,
     },
+
+    // CATSTATE_DRAGGING
+    {
+        {CATTRANS_DG_SD},
+        {1},
+        1
+    }
 };
 
 int viewDirections[] = {0, 1, 2, 6, 7};

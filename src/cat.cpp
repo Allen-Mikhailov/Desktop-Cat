@@ -39,11 +39,16 @@ double catAnimKeyframeTimer = 0;
 double catWalkTargetX = 0;
 double catWalkTargetY = 0;
 
-const double maxCatWalkDistance = 300;
-const double minCatWalkDistance = 50;
-const double catWalkPadding = 400;
-const double catWalkSpeed = 100;
+const double maxCatWalkDistance = 600;
+const double minCatWalkDistance = 200;
+const double catWalkPadding = 200;
+const double catWalkSpeed = 50;
 const double walkAnimSpeed = 4;
+
+// Dragging
+int catDragOffsetX = 0;
+int catDragOffsetY = 0;
+int draggingCat = 0;
 
 double state_change_timer = 0;
 const double state_change_length = 3;
@@ -294,9 +299,51 @@ void set_cat_state(int newState)
 int pick_view_direction()
 {
     int directions = sizeof(viewDirections) / sizeof(int);
-
     return viewDirections[(int) ((double) rand() /  RAND_MAX * directions)];
 }
+
+int mouse1(int down)
+{
+    POINT p;
+    GetCursorPos(&p);
+    if (down)
+    {
+        if (p.x-catX < SPRITE_UNIT && p.x-catX > 0 
+            && p.y-catY < SPRITE_UNIT && p.y-catY > 0)
+        {
+            set_cat_state(CATSTATE_DRAGGING);
+            catDragOffsetX = catX-p.x;
+            catDragOffsetY = catY-p.y;
+            draggingCat = 1;
+
+            return 1;
+        }
+    } else {
+        if (draggingCat) {
+            transition_from_state();
+            draggingCat = 0;
+            return 1;
+        }
+    }
+    return 0;
+}
+
+void update_dragging_cat(double delta_time)
+{
+    POINT p;
+    GetCursorPos(&p);
+
+    int pX = catX;
+    int pY = catY;
+
+    catX = p.x+catDragOffsetX;
+    catY = p.y+catDragOffsetY;
+
+    double angle = fmod(M_PI*2 + atan2(-(catY-pY), catX-pX), M_PI*2);
+    catAnimDir = CatDirFromAngle(angle);
+    catAnim = CA_SITDOWN;
+    catAnimF = 0;
+}   
 
 void update_walking_cat(double delta_time)
 {
@@ -457,6 +504,9 @@ void update(double delta_time)
             break;
         case CATSTATE_WALKING:
             update_walking_cat(delta_time);
+            break;
+        case CATSTATE_DRAGGING:
+            update_dragging_cat(delta_time);
             break;
         default:
             update_cat_state(delta_time);

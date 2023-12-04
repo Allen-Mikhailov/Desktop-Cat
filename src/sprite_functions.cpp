@@ -23,7 +23,7 @@ void coverSpriteDisplacement(HDC hdc, HBRUSH brush, int x, int y, int nx, int ny
     if (abs(xDif) > width || abs(yDif) > height)
     {
         // We can just fully cover with another square
-        rect = {nx, ny, nx+width, ny+height};
+        rect = {x, y, x+width, y+height};
         FillRect(hdc, &rect, brush);
     } else {
         // a a a

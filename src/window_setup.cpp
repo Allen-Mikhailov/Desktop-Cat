@@ -28,17 +28,6 @@ HINSTANCE hinstance;
 HDC paintHDC;
 
 HHOOK MouseHook = NULL;
-LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
-    if (nCode >= 0) {
-        // Mouse event occurred
-        if (wParam == WM_LBUTTONDOWN) {
-            printf("Mouse Down");
-        }
-    }
-
-    // Call the next hook in the chain
-    return CallNextHookEx(MouseHook, nCode, wParam, lParam);
-}
 
 // Window vars
 int client_width;
@@ -52,6 +41,27 @@ int mousedown = 0;
 void update(double delta_time);
 void init(HWND window, HDC hdc);
 void destroy(HWND window);
+int mouse1(int down);
+
+LRESULT CALLBACK MouseHookProc(int nCode, WPARAM wParam, LPARAM lParam) {
+    if (nCode >= 0) {
+        // Mouse event occurred
+        if (wParam == WM_LBUTTONDOWN) {
+            mousedown = 1;
+            if (mouse1(1) == 1)
+                return 1;
+
+            
+        } else if (wParam == WM_LBUTTONUP) {
+            mousedown = 0;
+            if (mouse1(0) == 1)
+                return 1;
+        }
+    }
+
+    // Call the next hook in the chain
+    return CallNextHookEx(MouseHook, nCode, wParam, lParam);
+}
 
 void paint(HWND window, HDC paintHDC)
 {
