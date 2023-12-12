@@ -393,6 +393,10 @@ void update_running_cat_(double delta_time)
     // Direction
     double targetDir = fmod(M_PI*2 + atan2(-yDiff, xDiff), M_PI*2);
     double rotDif = targetDir-catDirection;
+
+    // printf("diff: %f %f, c: %f\n", xDiff, yDiff, c);
+    // printf("rot: %f, rotT: %f, diff: %f\n", catDirection, targetDir, rotDif);
+
     if (rotDif != 0)
     {
         double rotSign = sign(rotDif);
@@ -403,6 +407,8 @@ void update_running_cat_(double delta_time)
             catDirection += rotDif;
         else 
             catDirection += rotSign*catTurnSpeed*delta_time;
+
+        catDirection = fmod(M_PI*2 + catDirection, M_PI*2);
 
         catAnimDir = CatDirFromAngle(catDirection);
     }

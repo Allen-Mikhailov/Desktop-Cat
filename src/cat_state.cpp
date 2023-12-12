@@ -207,7 +207,7 @@ struct cat_state states[10] = {
     // CATSTATE_SITTING
     {
         {CATTRANS_SD_LA, CATTRANS_SD_LD, CATTRANS_SD_RN, CATTRANS_SD_WA},
-        {1, 1, 1, 10},
+        {1, 1, 100, 1},
         4,
 
         CA_SITDOWN,
