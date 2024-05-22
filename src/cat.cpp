@@ -17,6 +17,8 @@
 #include "file_extras.cpp"
 #include "cat_state.cpp"
 
+// #define CAT_SHADOW
+
 HDC catSheetHDC;
 HBITMAP catSpriteMap;
 
@@ -160,11 +162,13 @@ void init(HWND window, HDC hdc)
     {
         for (int y = 0; y < 17; y++)
         {
+            #ifdef CAT_SHADOW
             Ellipse(shadowCatSpriteHDC, 
                 x*SPRITE_UNIT+SPRITE_UNIT/10, 
                 y*SPRITE_UNIT+SPRITE_UNIT/3, 
                 (x+1)*SPRITE_UNIT-SPRITE_UNIT/10, 
                 (y+1)*SPRITE_UNIT-SPRITE_UNIT/10);
+            #endif
         }
     }
 
@@ -311,7 +315,7 @@ int mouse1(int down)
         if (p.x-catX < SPRITE_UNIT && p.x-catX > 0 
             && p.y-catY < SPRITE_UNIT && p.y-catY > 0)
         {
-            set_cat_state(CATSTATE_DRAGGING);
+            // set_cat_state(CATSTATE_DRAGGING);
             catDragOffsetX = catX-p.x;
             catDragOffsetY = catY-p.y;
             draggingCat = 1;
@@ -320,8 +324,10 @@ int mouse1(int down)
         }
     } else {
         if (draggingCat) {
-            transition_from_state();
+            // transition_from_state();
             draggingCat = 0;
+            catWalkTargetX = catX;
+            catWalkTargetY = catY;
             return 1;
         }
     }
@@ -340,9 +346,9 @@ void update_dragging_cat(double delta_time)
     catY = p.y+catDragOffsetY;
 
     double angle = fmod(M_PI*2 + atan2(-(catY-pY), catX-pX), M_PI*2);
-    catAnimDir = CatDirFromAngle(angle);
-    catAnim = CA_SITDOWN;
-    catAnimF = 0;
+    // catAnimDir = CatDirFromAngle(angle);
+    // catAnim = CA_SITDOWN;
+    // catAnimF = 0;
 }   
 
 void update_walking_cat(double delta_time)
@@ -503,21 +509,23 @@ void update(double delta_time)
     int pCatX = catX;
     int pCatY = catY;
 
-    switch (catState)
+    if (draggingCat != 1)
     {
-        case CATSTATE_RUNNING:
-            update_running_cat_(delta_time);
-            break;
-        case CATSTATE_WALKING:
-            update_walking_cat(delta_time);
-            break;
-        case CATSTATE_DRAGGING:
-            update_dragging_cat(delta_time);
-            break;
-        default:
-            update_cat_state(delta_time);
+        switch (catState)
+        {
+            case CATSTATE_RUNNING:
+                update_running_cat_(delta_time);
+                break;
+            case CATSTATE_WALKING:
+                update_walking_cat(delta_time);
+                break;
+            default:
+                update_cat_state(delta_time);
+        }
+    } else {
+        update_dragging_cat(delta_time);
     }
-    // update_running_cat_(delta_time);
+    
     DrawCat((int) catX, (int) catY, catAnim, catAnimDir, (int) (catAnimF)%8, hdc, shadowCatSpriteHDC);
     coverSpriteDisplacement(hdc, transparentBrush, pCatX, pCatY, catX, catY, SPRITE_UNIT, SPRITE_UNIT);
     
